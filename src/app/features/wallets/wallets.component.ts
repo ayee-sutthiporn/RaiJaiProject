@@ -1,0 +1,160 @@
+import { Component, inject, signal } from '@angular/core';
+import { CommonModule, DecimalPipe } from '@angular/common';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { MockDataService } from '../../core/services/mock-data.service';
+import { WalletType } from '../../core/models/wallet.interface';
+
+@Component({
+  selector: 'app-wallets',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule, DecimalPipe],
+  template: `
+    <div class="space-y-6 animate-in fade-in zoom-in-95 duration-300">
+      <header class="flex justify-between items-center">
+        <div>
+          <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">กระเป๋าเงิน</h1>
+          <p class="text-zinc-500 dark:text-zinc-400">จัดการกระเป๋าเงินและบัญชีธนาคาร</p>
+        </div>
+        <button (click)="openAddModal()" class="bg-zinc-900 dark:bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow hover:opacity-90 transition-opacity flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+            เพิ่มกระเป๋า
+        </button>
+      </header>
+      
+      <!-- Wallet Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        @for (wallet of dataService.wallets(); track wallet.id) {
+            <div class="bg-white dark:bg-zinc-800 rounded-2xl p-6 border border-zinc-200 dark:border-zinc-700 shadow-sm relative group overflow-hidden">
+                 <!-- Background Decoration -->
+                 <div [class]="'absolute top-0 right-0 w-32 h-32 blur-3xl opacity-10 rounded-full -mr-10 -mt-10 ' + wallet.color"></div>
+                 
+                 <div class="flex justify-between items-start mb-4 relative z-10">
+                     <div [class]="'w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-lg ' + wallet.color">
+                        <!-- Icon Placeholder based on type -->
+                        @if (wallet.type === 'CASH') {
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+                        } @else if (wallet.type === 'BANK') {
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7"/><path d="M19 21V7"/><path d="M10 2a2 2 0 0 0-2 2v1"/><path d="M14 2a2 2 0 0 1 2 2v1"/><path d="M8 21h8"/><path d="m12 6 6 6H6l6-6Z"/></svg>
+                        } @else {
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+                        }
+                     </div>
+                     <button (click)="deleteWallet(wallet.id)" class="text-zinc-400 hover:text-red-500 transition-colors p-2" title="ลบกระเป๋า">
+                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                     </button>
+                 </div>
+
+                 <h3 class="text-lg font-bold text-zinc-900 dark:text-white truncate">{{ wallet.name }}</h3>
+                 <p class="text-sm text-zinc-500 mb-4">{{ getTypeLabel(wallet.type) }}</p>
+
+                 <div class="flex items-end justify-between">
+                     <p [class]="'text-2xl font-mono font-bold ' + (wallet.balance >= 0 ? 'text-zinc-900 dark:text-white' : 'text-red-500')">
+                         {{ wallet.balance | number:'1.2-2' }}
+                     </p>
+                     <span class="text-xs text-zinc-400 font-medium">THB</span>
+                 </div>
+            </div>
+        }
+      </div>
+      
+      <!-- Add Modal -->
+      @if (showModal()) {
+          <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+              <div class="bg-white dark:bg-zinc-900 rounded-2xl p-6 w-full max-w-md shadow-2xl border border-zinc-200 dark:border-zinc-700">
+                  <h2 class="text-xl font-bold mb-4 text-zinc-900 dark:text-white">เพิ่มกระเป๋าใหม่</h2>
+                  
+                  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4">
+                      <div>
+                          <label class="block text-xs font-medium text-zinc-500 mb-1">ชื่อบัญชี/กระเป๋า</label>
+                          <input type="text" formControlName="name" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none dark:text-white">
+                      </div>
+                      
+                      <div>
+                          <label class="block text-xs font-medium text-zinc-500 mb-1">ประเภท</label>
+                          <select formControlName="type" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none dark:text-white">
+                              <option value="CASH">เงินสด (Cash)</option>
+                              <option value="BANK">ธนาคาร (Bank)</option>
+                              <option value="CREDIT_CARD">บัตรเครดิต (Credit Card)</option>
+                          </select>
+                      </div>
+
+                      <div>
+                          <label class="block text-xs font-medium text-zinc-500 mb-1">ยอดเงินเริ่มต้น</label>
+                          <input type="number" formControlName="balance" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none dark:text-white">
+                      </div>
+
+                      <div class="grid grid-cols-5 gap-2">
+                          @for (color of colors; track color) {
+                              <button type="button" (click)="selectColor(color)" [class]="'w-8 h-8 rounded-full ' + color + (form.get('color')?.value === color ? ' ring-2 ring-offset-2 ring-zinc-500' : '')"></button>
+                          }
+                      </div>
+
+                      <div class="flex gap-3 mt-6">
+                          <button type="button" (click)="closeModal()" class="flex-1 py-2 text-zinc-600 dark:text-zinc-400 font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors">ยกเลิก</button>
+                          <button type="submit" [disabled]="form.invalid" class="flex-1 py-2 bg-zinc-900 dark:bg-emerald-600 text-white font-bold rounded-xl hover:opacity-90 disabled:opacity-50 transition-opacity">บันทึก</button>
+                      </div>
+                  </form>
+              </div>
+          </div>
+      }
+    </div>
+  `
+})
+export class WalletsComponent {
+  dataService = inject(MockDataService);
+  fb = inject(FormBuilder);
+
+  showModal = signal(false);
+
+  colors = ['bg-emerald-500', 'bg-blue-500', 'bg-purple-500', 'bg-rose-500', 'bg-orange-500', 'bg-zinc-500'];
+
+  form = this.fb.group({
+    name: ['', Validators.required],
+    type: ['CASH' as WalletType, Validators.required],
+    balance: [0, Validators.required],
+    color: ['bg-emerald-500']
+  });
+
+  openAddModal() {
+    this.showModal.set(true);
+    this.form.reset({ type: 'CASH', balance: 0, color: 'bg-emerald-500' });
+  }
+
+  closeModal() {
+    this.showModal.set(false);
+  }
+
+  selectColor(color: string) {
+    this.form.patchValue({ color });
+  }
+
+  getTypeLabel(type: string) {
+    switch (type) {
+      case 'CASH': return 'เงินสด';
+      case 'BANK': return 'บัญชีธนาคาร';
+      case 'CREDIT_CARD': return 'บัตรเครดิต';
+      default: return type;
+    }
+  }
+
+  onSubmit() {
+    if (this.form.valid) {
+      const val = this.form.getRawValue();
+      this.dataService.addWallet({
+        name: val.name!,
+        type: val.type!,
+        balance: val.balance!,
+        currency: 'THB',
+        color: val.color!,
+        ownerId: this.dataService.user().id
+      });
+      this.closeModal();
+    }
+  }
+
+  deleteWallet(id: string) {
+    if (confirm('คุณแน่ใจว่าต้องการลบกระเป๋านี้?')) {
+      this.dataService.deleteWallet(id);
+    }
+  }
+}

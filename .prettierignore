@@ -1,0 +1,8 @@
+# Ignore artifacts:
+dist
+coverage
+node_modules
+.angular
+
+# Ignore build output:
+*.d.ts
