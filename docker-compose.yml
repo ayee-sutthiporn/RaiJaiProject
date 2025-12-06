@@ -3,5 +3,5 @@ services:
     build: .
     container_name: raijai-frontend
     ports:
-      - '8080:80'
+      - '8083:80'
     restart: always
