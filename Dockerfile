@@ -18,7 +18,7 @@ RUN rm -rf /usr/share/nginx/html/*
 # Copy build artifacts
 # Note: Adjust the source path if your specific build differs. 
 # Based on 'dist/Frontend_RaiJai/browser' structure (Angular Application Builder).
-COPY --from=builder /app/dist/Frontend_RaiJai /usr/share/nginx/html
+COPY --from=builder /app/dist/Frontend_RaiJai/browser /usr/share/nginx/html
 
 # Copy custom nginx config
 COPY nginx.conf /etc/nginx/conf.d/default.conf
