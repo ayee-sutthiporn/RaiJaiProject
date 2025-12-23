@@ -6,6 +6,7 @@ export const authGuard: CanActivateFn = async () => {
     const authService = inject(AuthService);
 
     if (authService.isLoggedIn) {
+        sessionStorage.removeItem('sso_checked');
         return true;
     }
 
@@ -14,7 +15,7 @@ export const authGuard: CanActivateFn = async () => {
 
     if (!ssoChecked || (now - parseInt(ssoChecked, 10) > 30000)) {
         sessionStorage.setItem('sso_checked', now.toString());
-        await authService.login({ prompt: 'none' });
+        await authService.login();
         return false;
     }
 
