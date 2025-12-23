@@ -1,5 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { KeycloakService } from 'keycloak-angular';
+import { KeycloakService, KeycloakEventType } from 'keycloak-angular';
 import { KeycloakProfile } from 'keycloak-js';
 
 @Injectable({
@@ -9,10 +9,6 @@ export class AuthService {
     private keycloak = inject(KeycloakService);
 
     userProfile = signal<KeycloakProfile | null>(null);
-
-    constructor() {
-        this.loadUserProfile();
-    }
 
     get isLoggedIn(): boolean {
         return this.keycloak.isLoggedIn();
@@ -37,5 +33,22 @@ export class AuthService {
 
     getToken(): Promise<string> {
         return this.keycloak.getToken();
+    }
+
+    private initService(): void {
+        this.keycloak.keycloakEvents$.subscribe({
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            next: (event: any) => {
+                if (event.type === KeycloakEventType.AuthLogout) {
+                    this.userProfile.set(null);
+                    window.location.href = 'https://portal.sutthiporn.dev';
+                }
+            }
+        });
+    }
+
+    constructor() {
+        this.loadUserProfile();
+        this.initService();
     }
 }

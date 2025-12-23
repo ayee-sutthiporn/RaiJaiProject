@@ -1,8 +1,8 @@
 import { Injectable, computed, signal, effect } from '@angular/core';
 import { User } from '../models/user.interface';
-import { Transaction, TransactionType } from '../models/transaction.interface';
+import { Transaction } from '../models/transaction.interface';
 import { Wallet } from '../models/wallet.interface';
-import { Debt, DebtType } from '../models/debt.interface';
+import { Debt } from '../models/debt.interface';
 
 @Injectable({
     providedIn: 'root'
