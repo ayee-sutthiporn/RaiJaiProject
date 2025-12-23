@@ -41,7 +41,6 @@ export class AuthService {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             next: (event: any) => {
                 if (event.type === KeycloakEventType.AuthLogout) {
-                    console.log('[AuthService] AuthLogout event detected! Redirecting to Portal.');
                     this.userProfile.set(null);
                     window.location.href = 'https://portal.sutthiporn.dev';
                 }
