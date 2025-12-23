@@ -1,6 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { KeycloakService, KeycloakEventType } from 'keycloak-angular';
-import { KeycloakProfile } from 'keycloak-js';
+import { KeycloakProfile, KeycloakLoginOptions } from 'keycloak-js';
 
 @Injectable({
     providedIn: 'root'
@@ -14,9 +14,10 @@ export class AuthService {
         return this.keycloak.isLoggedIn();
     }
 
-    async login(redirectUri?: string): Promise<void> {
+    async login(options?: KeycloakLoginOptions): Promise<void> {
         await this.keycloak.login({
-            redirectUri: redirectUri || window.location.origin
+            redirectUri: window.location.origin,
+            ...options
         });
     }
 
