@@ -40,7 +40,9 @@ export class AuthService {
         this.keycloak.keycloakEvents$.subscribe({
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             next: (event: any) => {
+                console.log('[AuthService] Keycloak Event:', event);
                 if (event.type === KeycloakEventType.OnAuthLogout) {
+                    console.log('[AuthService] Logout detected');
                     this.userProfile.set(null);
                     window.location.href = 'https://portal.sutthiporn.dev';
                 }
@@ -49,7 +51,13 @@ export class AuthService {
     }
 
     constructor() {
-        this.loadUserProfile();
+        console.log('[AuthService] Initializing...');
+        this.loadUserProfile().then(() => {
+            console.log('[AuthService] User Profile Loaded:', this.userProfile());
+            console.log('[AuthService] Is Logged In:', this.isLoggedIn);
+        }).catch(err => {
+            console.error('[AuthService] Failed to load profile:', err);
+        });
         this.initService();
     }
 }
