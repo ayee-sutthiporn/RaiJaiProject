@@ -13,9 +13,8 @@ function initializeKeycloak(keycloak: KeycloakService) {
         clientId: 'raijai.client.id'
       },
       initOptions: {
-        onLoad: 'check-sso',
-        silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html',
-        checkLoginIframe: false
+        onLoad: 'login-required',
+        silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html'
       },
       enableBearerInterceptor: true
     });
