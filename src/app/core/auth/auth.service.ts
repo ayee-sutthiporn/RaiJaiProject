@@ -40,7 +40,7 @@ export class AuthService {
         this.keycloak.keycloakEvents$.subscribe({
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             next: (event: any) => {
-                if (event.type === KeycloakEventType.AuthLogout) {
+                if (event.type === KeycloakEventType.OnAuthLogout) {
                     this.userProfile.set(null);
                     window.location.href = 'https://portal.sutthiporn.dev';
                 }
