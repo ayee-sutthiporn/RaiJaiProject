@@ -9,6 +9,13 @@ export const authGuard: CanActivateFn = async (_route, state) => {
         return true;
     }
 
+    // Check if we already tried to login (have a code) but still aren't logged in
+    if (window.location.search.includes('code=')) {
+        console.error('Login failed: Code present but not authenticated. Stopping loop.');
+        // Optional: Redirect to an error page or clear parameters
+        return false;
+    }
+
     await authService.login({
         redirectUri: window.location.origin + state.url
     });

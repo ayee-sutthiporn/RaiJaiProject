@@ -58,6 +58,7 @@ export class AuthService {
         }).catch(err => {
             console.error('[AuthService] Failed to load profile:', err);
         });
+        console.log('[AuthService] Current URL:', window.location.href);
         this.initService();
     }
 }
