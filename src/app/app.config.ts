@@ -13,7 +13,7 @@ function initializeKeycloak(keycloak: KeycloakService) {
         clientId: 'raijai.client.id'
       },
       initOptions: {
-        onLoad: 'login-required',
+        onLoad: 'check-sso',
         silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html',
         checkLoginIframe: false,
         enableLogging: true
