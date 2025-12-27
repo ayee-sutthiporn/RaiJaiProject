@@ -4,12 +4,24 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideOAuthClient } from 'angular-oauth2-oidc';
 
 import { routes } from './app.routes';
+import { AuthService } from './core/auth/auth.service';
+import { APP_INITIALIZER } from '@angular/core';
+
+function initializeAuth(authService: AuthService) {
+  return () => authService.initService();
+}
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
     provideHttpClient(),
-    provideOAuthClient()
+    provideOAuthClient(),
+    {
+      provide: APP_INITIALIZER,
+      useFactory: initializeAuth,
+      deps: [AuthService],
+      multi: true
+    }
   ]
 };

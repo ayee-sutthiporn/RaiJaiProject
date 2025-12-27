@@ -28,7 +28,7 @@ export class AuthService {
         return this.oauthService.getAccessToken();
     }
 
-    private async initService(): Promise<void> {
+    public async initService(): Promise<void> {
         this.oauthService.configure(authConfig);
         console.log('[AuthService] Start initialize.');
 
@@ -86,11 +86,11 @@ export class AuthService {
 
     constructor() {
         console.log('[AuthService] Initializing...');
-        this.initService().then(() => {
-            console.log('[AuthService] Initialization complete');
-            console.log('[AuthService] Is Logged In:', this.isLoggedIn);
-        }).catch(err => {
-            console.error('[AuthService] Initialization failed:', err);
-        });
+        // this.initService().then(() => {
+        //     console.log('[AuthService] Initialization complete');
+        //     console.log('[AuthService] Is Logged In:', this.isLoggedIn);
+        // }).catch(err => {
+        //     console.error('[AuthService] Initialization failed:', err);
+        // });
     }
 }
