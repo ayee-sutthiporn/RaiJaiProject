@@ -26,10 +26,10 @@ export class AuthService {
     }
 
     async loadUserProfile(): Promise<void> {
-        if (this.isLoggedIn) {
-            const profile = await this.keycloak.loadUserProfile();
-            this.userProfile.set(profile);
-        }
+        // if (this.isLoggedIn) {
+        const profile = await this.keycloak.loadUserProfile();
+        this.userProfile.set(profile);
+        // }
     }
 
     getToken(): Promise<string> {
