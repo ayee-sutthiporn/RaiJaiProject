@@ -10,7 +10,8 @@ function initializeKeycloak(keycloak: KeycloakService) {
       config: {
         url: 'https://auth.sutthiporn.dev',
         realm: 'portal.sutthiporn',
-        clientId: 'raijai.client.id'
+        clientId: 'portal-sutthiporn.id'
+        // clientId: 'raijai.client.id'
       },
       initOptions: {
         onLoad: 'check-sso',
