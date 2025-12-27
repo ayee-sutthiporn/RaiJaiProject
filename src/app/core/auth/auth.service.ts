@@ -30,10 +30,28 @@ export class AuthService {
 
     private async initService(): Promise<void> {
         this.oauthService.configure(authConfig);
+
+        // 1. โหลด Discovery Doc และเช็คว่าเป็นการ Redirect กลับมาจากหน้า Login หรือไม่
         await this.oauthService.loadDiscoveryDocumentAndTryLogin();
 
+        // 2. เช็คผลลัพธ์
         if (this.oauthService.hasValidAccessToken()) {
+            // A. กรณี Login สำเร็จ (มี Token อยู่แล้ว หรือเพิ่ง Redirect กลับมา)
+            console.log('[AuthService] Token found on load.');
             this.loadUserProfile();
+        } else {
+            // B. กรณีไม่มี Token -> ลองทำ SSO (Silent Refresh) เช็คว่า Login ค้างไว้ที่ Portal หรือไม่
+            console.log('[AuthService] No token found. Attempting Silent Refresh (SSO)...');
+            try {
+                await this.oauthService.silentRefresh();
+                if (this.oauthService.hasValidAccessToken()) {
+                    console.log('[AuthService] SSO Success! Logged in silently.');
+                    this.loadUserProfile();
+                }
+            } catch (error) {
+                console.warn('[AuthService] SSO Failed or User not logged in at Identity Provider.', error);
+                // ไม่ต้องทำอะไร ปล่อยให้สถานะเป็น Logged Out
+            }
         }
 
         this.oauthService.setupAutomaticSilentRefresh();
