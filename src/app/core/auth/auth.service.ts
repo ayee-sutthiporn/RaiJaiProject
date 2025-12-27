@@ -30,9 +30,11 @@ export class AuthService {
 
     private async initService(): Promise<void> {
         this.oauthService.configure(authConfig);
+        console.log('[AuthService] Start initialize.');
 
         // 1. โหลด Discovery Doc และเช็คว่าเป็นการ Redirect กลับมาจากหน้า Login หรือไม่
         await this.oauthService.loadDiscoveryDocumentAndTryLogin();
+        console.log('[AuthService] Load Discovery Doc and try login.');
 
         // 2. เช็คผลลัพธ์
         if (this.oauthService.hasValidAccessToken()) {
