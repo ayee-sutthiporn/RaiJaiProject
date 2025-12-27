@@ -1,64 +1,65 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { KeycloakService, KeycloakEventType } from 'keycloak-angular';
-import { KeycloakProfile, KeycloakLoginOptions } from 'keycloak-js';
+import { OAuthService } from 'angular-oauth2-oidc';
+import { authConfig } from './auth.config';
 
 @Injectable({
     providedIn: 'root'
 })
 export class AuthService {
-    private keycloak = inject(KeycloakService);
+    private oauthService = inject(OAuthService);
 
-    userProfile = signal<KeycloakProfile | null>(null);
+    userProfile = signal<Record<string, unknown> | null>(null);
 
     get isLoggedIn(): boolean {
-        return this.keycloak.isLoggedIn();
+        return this.oauthService.hasValidAccessToken();
     }
 
-    async login(options?: KeycloakLoginOptions): Promise<void> {
-        await this.keycloak.login({
-            redirectUri: window.location.origin,
-            ...options
-        });
+    async login(): Promise<void> {
+        this.oauthService.initLoginFlow();
     }
 
-    async logout(redirectUri?: string): Promise<void> {
-        await this.keycloak.logout(redirectUri || window.location.origin);
+    logout(): void {
+        this.oauthService.logOut();
     }
 
-    async loadUserProfile(): Promise<void> {
-        // if (this.isLoggedIn) {
-        const profile = await this.keycloak.loadUserProfile();
-        this.userProfile.set(profile);
-        // }
+    getToken(): string {
+        return this.oauthService.getAccessToken();
     }
 
-    getToken(): Promise<string> {
-        return this.keycloak.getToken();
-    }
+    private async initService(): Promise<void> {
+        this.oauthService.configure(authConfig);
+        await this.oauthService.loadDiscoveryDocumentAndTryLogin();
 
-    private initService(): void {
-        this.keycloak.keycloakEvents$.subscribe({
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            next: (event: any) => {
-                console.log('[AuthService] Keycloak Event:', event);
-                if (event.type === KeycloakEventType.OnAuthLogout) {
-                    console.log('[AuthService] Logout detected');
-                    this.userProfile.set(null);
-                    window.location.href = 'https://portal.sutthiporn.dev';
-                }
+        if (this.oauthService.hasValidAccessToken()) {
+            this.loadUserProfile();
+        }
+
+        this.oauthService.events.subscribe(event => {
+            console.log('[AuthService] OAuth Event:', event);
+            if (event.type === 'token_received' || event.type === 'token_refreshed') {
+                this.loadUserProfile();
+            }
+            if (event.type === 'logout') {
+                this.userProfile.set(null);
             }
         });
     }
 
+    private loadUserProfile(): void {
+        const claims = this.oauthService.getIdentityClaims();
+        if (claims) {
+            this.userProfile.set(claims as Record<string, unknown>);
+            console.log('[AuthService] User Profile Loaded:', claims);
+        }
+    }
+
     constructor() {
         console.log('[AuthService] Initializing...');
-        this.loadUserProfile().then(() => {
-            console.log('[AuthService] User Profile Loaded:', this.userProfile());
+        this.initService().then(() => {
+            console.log('[AuthService] Initialization complete');
             console.log('[AuthService] Is Logged In:', this.isLoggedIn);
         }).catch(err => {
-            console.error('[AuthService] Failed to load profile:', err);
+            console.error('[AuthService] Initialization failed:', err);
         });
-        console.log('[AuthService] Current URL:', window.location.href);
-        this.initService();
     }
 }
