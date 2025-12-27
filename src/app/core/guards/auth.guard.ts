@@ -16,9 +16,7 @@ export const authGuard: CanActivateFn = async (_route, state) => {
         return false;
     }
 
-    await authService.login({
-        redirectUri: window.location.origin + state.url
-    });
+    await authService.login(state.url);
 
     return false;
 };

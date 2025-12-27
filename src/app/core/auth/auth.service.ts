@@ -1,4 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { OAuthService } from 'angular-oauth2-oidc';
 import { authConfig } from './auth.config';
 
@@ -7,6 +8,7 @@ import { authConfig } from './auth.config';
 })
 export class AuthService {
     private oauthService = inject(OAuthService);
+    private router = inject(Router);
 
     userProfile = signal<Record<string, unknown> | null>(null);
 
@@ -14,8 +16,8 @@ export class AuthService {
         return this.oauthService.hasValidAccessToken();
     }
 
-    async login(): Promise<void> {
-        this.oauthService.initLoginFlow();
+    async login(targetUrl?: string): Promise<void> {
+        this.oauthService.initLoginFlow(targetUrl || undefined);
     }
 
     logout(): void {
@@ -34,10 +36,19 @@ export class AuthService {
             this.loadUserProfile();
         }
 
+        this.oauthService.setupAutomaticSilentRefresh();
+
         this.oauthService.events.subscribe(event => {
             console.log('[AuthService] OAuth Event:', event);
             if (event.type === 'token_received' || event.type === 'token_refreshed') {
                 this.loadUserProfile();
+            }
+            if (event.type === 'token_received' && this.oauthService.state) {
+                const targetUrl = decodeURIComponent(this.oauthService.state);
+                // Basic validation to prevent open redirects if needed, but for internal router it's fine
+                if (targetUrl.startsWith('/')) {
+                    this.router.navigateByUrl(targetUrl);
+                }
             }
             if (event.type === 'logout') {
                 this.userProfile.set(null);
