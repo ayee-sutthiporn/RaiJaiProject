@@ -5,6 +5,10 @@ import { AuthService } from '../auth/auth.service';
 export const authGuard: CanActivateFn = async (_route, state) => {
     const authService = inject(AuthService);
 
+    // Wait for the auth initialization to complete (loading screen handling)
+    await authService.ensureInitialized();
+
+
     if (authService.isLoggedIn) {
         return true;
     }

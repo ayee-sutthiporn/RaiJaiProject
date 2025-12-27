@@ -1,1 +1,8 @@
+@if (authService.isAuthChecking()) {
+<div class="fixed inset-0 bg-white dark:bg-zinc-900 z-50 flex flex-col items-center justify-center">
+    <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-emerald-500"></div>
+    <p class="mt-6 text-zinc-400 font-light animate-pulse tracking-wide">กำลังเชื่อมต่อระบบ...</p>
+</div>
+}
+
 <router-outlet />
