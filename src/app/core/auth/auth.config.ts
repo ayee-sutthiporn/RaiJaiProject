@@ -5,7 +5,8 @@ export const authConfig: AuthConfig = {
     redirectUri: window.location.origin + '/callback',
     clientId: 'raijai.client.id',
     responseType: 'code',
-    scope: 'openid profile email',
+    scope: 'openid profile email offline_access',
     showDebugInformation: true,
-    silentRefreshRedirectUri: window.location.origin + '/assets/silent-refresh.html',
+    // silentRefreshRedirectUri: window.location.origin + '/assets/silent-refresh.html',
+    useSilentRefresh: false
 };
