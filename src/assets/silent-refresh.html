@@ -2,7 +2,8 @@
 
 <body>
     <script>
-        parent.postMessage(location.href, location.origin);
+        // บรรทัดนี้สำคัญที่สุด! ถ้าไม่มี Angular จะ Timeout
+        parent.postMessage(location.hash, location.origin);
     </script>
 </body>
 
