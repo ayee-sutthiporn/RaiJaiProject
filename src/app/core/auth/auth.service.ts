@@ -29,6 +29,7 @@ export class AuthService {
     }
 
     public async initService(): Promise<void> {
+        this.oauthService.setStorage(localStorage);
         this.oauthService.configure(authConfig);
         console.log('[AuthService] Start initialize.');
 
