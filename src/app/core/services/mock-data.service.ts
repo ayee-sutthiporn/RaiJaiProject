@@ -3,6 +3,7 @@ import { User } from '../models/user.interface';
 import { Transaction } from '../models/transaction.interface';
 import { Wallet } from '../models/wallet.interface';
 import { Debt } from '../models/debt.interface';
+import { HistoryLog } from '../models/history-log.interface';
 
 @Injectable({
     providedIn: 'root'
@@ -110,6 +111,7 @@ export class MockDataService {
 
     addWallet(wallet: Omit<Wallet, 'id'>) {
         const newWallet = { ...wallet, id: crypto.randomUUID() };
+        this.recordHistory(newWallet, 'CREATE', 'สร้างกระเป๋าเงินใหม่');
         this.wallets.update(list => [...list, newWallet]);
     }
 
@@ -118,11 +120,19 @@ export class MockDataService {
     }
 
     updateWallet(id: string, data: Partial<Wallet>) {
-        this.wallets.update(list => list.map(w => w.id === id ? { ...w, ...data } : w));
+        this.wallets.update(list => list.map(w => {
+            if (w.id === id) {
+                const updated = { ...w, ...data };
+                this.recordHistory(updated, 'UPDATE', 'แก้ไขข้อมูลกระเป๋าเงิน', w);
+                return updated;
+            }
+            return w;
+        }));
     }
 
     addDebt(debt: Omit<Debt, 'id'>) {
         const newDebt = { ...debt, id: crypto.randomUUID() };
+        this.recordHistory(newDebt, 'CREATE', 'สร้างรายการหนี้สินใหม่');
         this.debts.update(list => [...list, newDebt]);
     }
 
@@ -131,7 +141,14 @@ export class MockDataService {
     }
 
     updateDebt(id: string, data: Partial<Debt>) {
-        this.debts.update(list => list.map(d => d.id === id ? { ...d, ...data } : d));
+        this.debts.update(list => list.map(d => {
+            if (d.id === id) {
+                const updated = { ...d, ...data };
+                this.recordHistory(updated, 'UPDATE', 'แก้ไขรายการหนี้สิน', d);
+                return updated;
+            }
+            return d;
+        }));
     }
 
     payInstallment(debtId: string, amount: number, walletId: string) {
@@ -160,7 +177,7 @@ export class MockDataService {
             let newRemaining = d.remainingAmount - amount;
             if (newRemaining < 0) newRemaining = 0;
 
-            return {
+            const updatedDebt = {
                 ...d,
                 remainingAmount: newRemaining,
                 installmentPlan: d.installmentPlan ? {
@@ -168,6 +185,8 @@ export class MockDataService {
                     paidMonths: newPaid
                 } : undefined
             };
+            this.recordHistory(updatedDebt, 'PAYMENT', `ชำระยอด ${amount} บาท`, d);
+            return updatedDebt;
         }));
     }
 
@@ -188,5 +207,21 @@ export class MockDataService {
     private translateCategory(cat: string): string {
         const map: Record<string, string> = { 'Food': 'อาหาร', 'Transport': 'เดินทาง', 'Shopping': 'ช้อปปิ้ง', 'Entertainment': 'บันเทิง', 'Utilities': 'สาธารณูปโภค', 'Other': 'อื่นๆ', 'Salary': 'เงินเดือน', 'Freight': 'จ็อบพิเศษ' };
         return map[cat] || cat;
+    }
+
+    private recordHistory(entity: { history?: HistoryLog[] }, action: 'CREATE' | 'UPDATE' | 'DELETE' | 'PAYMENT', details: string, previousValue?: unknown) {
+        const log: HistoryLog = {
+            id: crypto.randomUUID(),
+            action,
+            timestamp: new Date().toISOString(),
+            details,
+            previousValue: previousValue ? JSON.parse(JSON.stringify(previousValue)) : undefined,
+            newValue: JSON.parse(JSON.stringify(entity))
+        };
+
+        if (!entity.history) {
+            entity.history = [];
+        }
+        entity.history.unshift(log);
     }
 }
