@@ -105,7 +105,7 @@ export class TransactionFormComponent {
     types: TransactionType[] = ['INCOME', 'EXPENSE', 'TRANSFER'];
     currentType = signal<TransactionType>('EXPENSE');
 
-    categories = ['อาหาร', 'เดินทาง', 'ช้อปปิ้ง', 'บันเทิง', 'บิล/สาธารณูปโภค', 'เงินเดือน', 'ลงทุน', 'อื่นๆ'];
+    categories = ['อาหาร', 'เดินทาง', 'ช้อปปิ้ง', 'บันเทิง', 'บิล/สาธารณูปโภค', 'เงินเดือน', 'ลงทุน', 'ซ่อมบำรุง', 'อื่นๆ'];
 
     form: FormGroup = this.fb.group({
         amount: [null, [Validators.required, Validators.min(1)]],

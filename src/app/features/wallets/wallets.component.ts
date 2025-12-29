@@ -71,7 +71,7 @@ import { HistoryListComponent } from '../../shared/components/history-list/histo
       
       <!-- Add Modal -->
       @if (showModal()) {
-          <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
               <div class="bg-white dark:bg-zinc-900 rounded-2xl p-6 w-full max-w-md shadow-2xl border border-zinc-200 dark:border-zinc-700">
                   <h2 class="text-xl font-bold mb-4 text-zinc-900 dark:text-white">{{ editingId() ? 'แก้ไขกระเป๋า' : 'เพิ่มกระเป๋าใหม่' }}</h2>
                   
@@ -112,7 +112,7 @@ import { HistoryListComponent } from '../../shared/components/history-list/histo
       
       <!-- History Modal -->
       @if (showHistoryModal()) {
-          <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
               <div class="bg-white dark:bg-zinc-900 rounded-2xl p-6 w-full max-w-md shadow-2xl border border-zinc-200 dark:border-zinc-700 max-h-[80vh] overflow-y-auto">
                   <div class="flex justify-between items-center mb-4">
                       <h2 class="text-xl font-bold text-zinc-900 dark:text-white">ประวัติการแก้ไข</h2>
@@ -131,7 +131,7 @@ import { HistoryListComponent } from '../../shared/components/history-list/histo
 
     <!-- Transactions Modal -->
     @if (showTransactionsModal()) {
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+        <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
             <div class="bg-white dark:bg-zinc-900 rounded-2xl p-6 w-full max-w-lg shadow-2xl border border-zinc-200 dark:border-zinc-700 max-h-[80vh] overflow-y-auto">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-xl font-bold text-zinc-900 dark:text-white">รายการเดินบัญชี</h2>

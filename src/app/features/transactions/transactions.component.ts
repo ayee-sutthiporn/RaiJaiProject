@@ -4,10 +4,10 @@ import { TransactionFormComponent } from './components/transaction-form/transact
 import { MockDataService } from '../../core/services/mock-data.service';
 
 @Component({
-   selector: 'app-transactions-page',
-   standalone: true,
-   imports: [CommonModule, TransactionFormComponent, DatePipe, DecimalPipe],
-   template: `
+    selector: 'app-transactions-page',
+    standalone: true,
+    imports: [CommonModule, TransactionFormComponent, DatePipe, DecimalPipe],
+    template: `
     <div class="space-y-6 animate-in fade-in zoom-in-95 duration-300">
       <header>
         <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">ทำรายการ</h1>
@@ -54,21 +54,21 @@ import { MockDataService } from '../../core/services/mock-data.service';
   `
 })
 export class TransactionsPageComponent {
-   dataService = inject(MockDataService);
+    dataService = inject(MockDataService);
 
-   getCategoryColor(type: string): string {
-      switch (type) {
-         case 'INCOME': return 'bg-emerald-100 dark:bg-emerald-900/30';
-         case 'EXPENSE': return 'bg-rose-100 dark:bg-rose-900/30';
-         default: return 'bg-blue-100 dark:bg-blue-900/30';
-      }
-   }
+    getCategoryColor(type: string): string {
+        switch (type) {
+            case 'INCOME': return 'bg-emerald-100 dark:bg-emerald-900/30';
+            case 'EXPENSE': return 'bg-rose-100 dark:bg-rose-900/30';
+            default: return 'bg-blue-100 dark:bg-blue-900/30';
+        }
+    }
 
-   getEmoji(category: string): string {
-      const map: Record<string, string> = {
-         'อาหาร': '🍔', 'เดินทาง': '🚕', 'เงินเดือน': '💰', 'ช้อปปิ้ง': '🛍️',
-         'บันเทิง': '🎬', 'โอนเงิน': '💸', 'เงินออม': '🏦'
-      };
-      return map[category] || '📝';
-   }
+    getEmoji(category: string): string {
+        const map: Record<string, string> = {
+            'อาหาร': '🍔', 'เดินทาง': '🚕', 'เงินเดือน': '💰', 'ช้อปปิ้ง': '🛍️',
+            'บันเทิง': '🎬', 'โอนเงิน': '💸', 'เงินออม': '🏦', 'ซ่อมบำรุง': '🔧'
+        };
+        return map[category] || '📝';
+    }
 }

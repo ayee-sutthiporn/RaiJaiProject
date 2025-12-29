@@ -211,7 +211,7 @@ export class MockDataService {
     }
 
     private translateCategory(cat: string): string {
-        const map: Record<string, string> = { 'Food': 'อาหาร', 'Transport': 'เดินทาง', 'Shopping': 'ช้อปปิ้ง', 'Entertainment': 'บันเทิง', 'Utilities': 'สาธารณูปโภค', 'Other': 'อื่นๆ', 'Salary': 'เงินเดือน', 'Freight': 'จ็อบพิเศษ' };
+        const map: Record<string, string> = { 'Food': 'อาหาร', 'Transport': 'เดินทาง', 'Shopping': 'ช้อปปิ้ง', 'Entertainment': 'บันเทิง', 'Utilities': 'สาธารณูปโภค', 'Other': 'อื่นๆ', 'Salary': 'เงินเดือน', 'Freight': 'จ็อบพิเศษ', 'Maintenance': 'ซ่อมบำรุง' };
         return map[cat] || cat;
     }
 
