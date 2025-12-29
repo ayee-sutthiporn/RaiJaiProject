@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, FormGroup } from '@angular/forms';
 import { MockDataService } from '../../../../core/services/mock-data.service';
@@ -9,7 +9,7 @@ import { TransactionType } from '../../../../core/models/transaction.interface';
     standalone: true,
     imports: [CommonModule, ReactiveFormsModule],
     template: `
-    <div class="bg-white dark:bg-zinc-800 p-6 rounded-2xl shadow-lg border border-zinc-200 dark:border-zinc-700 max-w-md w-full mx-auto">
+    <div class="bg-white dark:bg-zinc-800 p-6 rounded-2xl shadow-lg border border-zinc-200 dark:border-zinc-700 w-full">
       <h2 class="text-xl font-bold mb-6 text-zinc-900 dark:text-white">ทำรายการใหม่</h2>
       
       <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4">
@@ -72,8 +72,8 @@ import { TransactionType } from '../../../../core/models/transaction.interface';
             <div>
               <label for="category" class="block text-xs font-medium text-zinc-500 mb-1">หมวดหมู่</label>
               <select id="category" formControlName="category" class="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none dark:text-white">
-                @for (cat of categories; track cat) {
-                    <option [value]="cat">{{ cat }}</option>
+                @for (cat of categories(); track cat.id) {
+                    <option [value]="cat.name">{{ cat.name }} {{ cat.icon }}</option>
                 }
               </select>
             </div>
@@ -101,11 +101,12 @@ import { TransactionType } from '../../../../core/models/transaction.interface';
 export class TransactionFormComponent {
     dataService = inject(MockDataService);
     fb = inject(FormBuilder);
+    formSubmitted = output<void>();
 
     types: TransactionType[] = ['INCOME', 'EXPENSE', 'TRANSFER'];
     currentType = signal<TransactionType>('EXPENSE');
 
-    categories = ['อาหาร', 'เดินทาง', 'ช้อปปิ้ง', 'บันเทิง', 'บิล/สาธารณูปโภค', 'เงินเดือน', 'ลงทุน', 'ซ่อมบำรุง', 'อื่นๆ'];
+    categories = this.dataService.categories;
 
     form: FormGroup = this.fb.group({
         amount: [null, [Validators.required, Validators.min(1)]],
@@ -173,6 +174,7 @@ export class TransactionFormComponent {
                 amount: null,
                 description: ''
             });
+            this.formSubmitted.emit();
             alert('บันทึกเรียบร้อย!');
         }
     }

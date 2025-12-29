@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
 import { TransactionFormComponent } from './components/transaction-form/transaction-form.component';
 import { MockDataService } from '../../core/services/mock-data.service';
@@ -14,17 +14,44 @@ import { MockDataService } from '../../core/services/mock-data.service';
          <p class="text-zinc-500 dark:text-zinc-400">จัดการรายรับรายจ่ายของคุณ</p>
       </header>
       
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-         <!-- Form -->
-         <div class="sticky top-24">
-            <app-transaction-form></app-transaction-form>
-         </div>
+      <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+          <!-- Filters -->
+          <div class="flex items-center gap-3 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
+               <button (click)="setFilterType('ALL')" [class]="'px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ' + (filterType() === 'ALL' ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border border-transparent' : 'bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600')">
+                   ทั้งหมด
+               </button>
+               <button (click)="setFilterType('INCOME')" [class]="'px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ' + (filterType() === 'INCOME' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800' : 'bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600')">
+                   รายรับ
+               </button>
+               <button (click)="setFilterType('EXPENSE')" [class]="'px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ' + (filterType() === 'EXPENSE' ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800' : 'bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600')">
+                   รายจ่าย
+               </button>
+          </div>
 
-         <!-- Transaction History -->
-         <div class="bg-white dark:bg-zinc-800 rounded-2xl p-6 border border-zinc-200 dark:border-zinc-700 shadow-sm">
-            <h3 class="font-bold text-zinc-900 dark:text-white mb-4">ประวัติรายการ recent</h3>
-            <div class="space-y-3">
-                @for (tx of dataService.transactions(); track tx.id) {
+          <!-- Add Button -->
+          <button (click)="openModal()" class="w-full md:w-auto bg-zinc-900 dark:bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-zinc-200 dark:shadow-none hover:opacity-90 transition-all flex items-center justify-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+              ทำรายการใหม่
+          </button>
+      </div>
+      
+      <div class="grid grid-cols-1 gap-8 items-start">
+         <!-- Removed Inline Form -->
+
+          <div class="bg-white dark:bg-zinc-800 rounded-2xl p-6 border border-zinc-200 dark:border-zinc-700 shadow-sm">
+             <div class="flex justify-between items-center mb-4">
+                 <h3 class="font-bold text-zinc-900 dark:text-white">ประวัติรายการ</h3>
+                 <!-- Category Filter Dropdown -->
+                 <select [value]="filterCategoryId() || ''" (change)="setFilterCategory($event)" class="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 dark:text-white">
+                     <option value="">ทุกหมวดหมู่</option>
+                     @for (cat of dataService.categories(); track cat.id) {
+                         <option [value]="cat.name">{{ cat.name }}</option>
+                     }
+                 </select>
+             </div>
+             
+             <div class="space-y-3">
+                 @for (tx of filteredTransactions(); track tx.id) {
                     <div class="flex items-center justify-between p-3 rounded-xl bg-zinc-50 dark:bg-zinc-700/30 group">
                         <div class="flex items-center gap-3">
                             <div [class]="'w-10 h-10 rounded-full flex items-center justify-center text-lg ' + getCategoryColor(tx.type)">
@@ -50,11 +77,56 @@ import { MockDataService } from '../../core/services/mock-data.service';
             </div>
          </div>
       </div>
+
+       <!-- Modal -->
+       @if (showModal()) {
+           <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+               <div class="relative w-full max-w-md">
+                   <button (click)="closeModal()" class="absolute top-4 right-4 z-10 p-2 bg-zinc-100 dark:bg-zinc-800 rounded-full text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors">
+                       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 18 18"/></svg>
+                   </button>
+                   <app-transaction-form (formSubmitted)="closeModal()"></app-transaction-form>
+               </div>
+           </div>
+       }
     </div>
   `
 })
 export class TransactionsPageComponent {
     dataService = inject(MockDataService);
+
+    showModal = signal(false);
+    filterType = signal<'ALL' | 'INCOME' | 'EXPENSE'>('ALL');
+    filterCategoryId = signal<string | null>(null);
+
+    filteredTransactions = computed(() => {
+        let txs = this.dataService.transactions();
+
+        // Filter Type
+        if (this.filterType() !== 'ALL') {
+            txs = txs.filter(t => t.type === this.filterType());
+        }
+
+        // Filter Category
+        if (this.filterCategoryId()) {
+            txs = txs.filter(t => t.category === this.filterCategoryId());
+        }
+
+        // Sort by date desc
+        return txs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    });
+
+    openModal() { this.showModal.set(true); }
+    closeModal() { this.showModal.set(false); }
+
+    setFilterType(type: 'ALL' | 'INCOME' | 'EXPENSE') {
+        this.filterType.set(type);
+    }
+
+    setFilterCategory(event: Event) {
+        const val = (event.target as HTMLSelectElement).value;
+        this.filterCategoryId.set(val === '' ? null : val);
+    }
 
     getCategoryColor(type: string): string {
         switch (type) {
@@ -65,10 +137,7 @@ export class TransactionsPageComponent {
     }
 
     getEmoji(category: string): string {
-        const map: Record<string, string> = {
-            'อาหาร': '🍔', 'เดินทาง': '🚕', 'เงินเดือน': '💰', 'ช้อปปิ้ง': '🛍️',
-            'บันเทิง': '🎬', 'โอนเงิน': '💸', 'เงินออม': '🏦', 'ซ่อมบำรุง': '🔧'
-        };
-        return map[category] || '📝';
+        const cat = this.dataService.categories().find(c => c.name === category);
+        return cat?.icon || '📝';
     }
 }

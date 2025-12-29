@@ -5,6 +5,14 @@ import { Wallet } from '../models/wallet.interface';
 import { Debt } from '../models/debt.interface';
 import { HistoryLog } from '../models/history-log.interface';
 
+export interface Category {
+    id: string;
+    name: string;
+    type: 'INCOME' | 'EXPENSE';
+    color: string;
+    icon?: string;
+}
+
 @Injectable({
     providedIn: 'root'
 })
@@ -31,6 +39,20 @@ export class MockDataService {
         { id: 't6', amount: 3500, type: 'INCOME', category: 'Freight', date: new Date(Date.now() - 200000).toISOString(), walletId: 'w2', createdById: 'u1', description: 'งานนอก' },
         { id: 't7', amount: 899, type: 'EXPENSE', category: 'Food', date: new Date().toISOString(), walletId: 'w3', createdById: 'u1', description: 'บุฟเฟต์' },
         { id: 't8', amount: 1200, type: 'EXPENSE', category: 'Transport', date: new Date().toISOString(), walletId: 'w3', createdById: 'u1', description: 'น้ำมันรถ' }
+    ]);
+
+    categories = signal<Category[]>([
+        { id: 'c1', name: 'อาหาร', type: 'EXPENSE', color: 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400', icon: '🍔' },
+        { id: 'c2', name: 'เดินทาง', type: 'EXPENSE', color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400', icon: '🚕' },
+        { id: 'c3', name: 'ช้อปปิ้ง', type: 'EXPENSE', color: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400', icon: '🛍️' },
+        { id: 'c4', name: 'บันเทิง', type: 'EXPENSE', color: 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400', icon: '🎬' },
+        { id: 'c5', name: 'บิล/สาธารณูปโภค', type: 'EXPENSE', color: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400', icon: '⚡' }, // Utilities map to this
+        { id: 'c6', name: 'เงินเดือน', type: 'INCOME', color: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400', icon: '💰' },
+        { id: 'c7', name: 'ลงทุน', type: 'INCOME', color: 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400', icon: '📈' },
+        { id: 'c8', name: 'จ็อบพิเศษ', type: 'INCOME', color: 'bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400', icon: '💵' }, // Freight
+        { id: 'c9', name: 'โอนเงิน', type: 'EXPENSE', color: 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400', icon: '💸' },
+        { id: 'c10', name: 'ซ่อมบำรุง', type: 'EXPENSE', color: 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400', icon: '🔧' },
+        { id: 'c11', name: 'อื่นๆ', type: 'EXPENSE', color: 'bg-gray-100 dark:bg-gray-900/30 text-gray-600 dark:text-gray-400', icon: '📝' }
     ]);
 
     debts = signal<Debt[]>([
@@ -210,8 +232,32 @@ export class MockDataService {
         }));
     }
 
+    addCategory(category: Omit<Category, 'id'>) {
+        const newCat: Category = { ...category, id: crypto.randomUUID() };
+        this.categories.update(list => [...list, newCat]);
+    }
+
+    deleteCategory(id: string) {
+        this.categories.update(list => list.filter(c => c.id !== id));
+    }
+
+    updateCategory(id: string, data: Partial<Category>) {
+        this.categories.update(list => list.map(c => c.id === id ? { ...c, ...data } : c));
+    }
+
     private translateCategory(cat: string): string {
-        const map: Record<string, string> = { 'Food': 'อาหาร', 'Transport': 'เดินทาง', 'Shopping': 'ช้อปปิ้ง', 'Entertainment': 'บันเทิง', 'Utilities': 'สาธารณูปโภค', 'Other': 'อื่นๆ', 'Salary': 'เงินเดือน', 'Freight': 'จ็อบพิเศษ', 'Maintenance': 'ซ่อมบำรุง' };
+        // Legacy translation for old mock data keys to new Display Names
+        const map: Record<string, string> = {
+            'Food': 'อาหาร',
+            'Transport': 'เดินทาง',
+            'Shopping': 'ช้อปปิ้ง',
+            'Entertainment': 'บันเทิง',
+            'Utilities': 'บิล/สาธารณูปโภค',
+            'Other': 'อื่นๆ',
+            'Salary': 'เงินเดือน',
+            'Freight': 'จ็อบพิเศษ',
+            'Maintenance': 'ซ่อมบำรุง'
+        };
         return map[cat] || cat;
     }
 
