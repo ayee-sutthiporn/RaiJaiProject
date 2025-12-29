@@ -17,7 +17,7 @@ import { Transaction } from '../../../../core/models/transaction.interface';
         @for (transaction of transactions(); track transaction.id) {
           <div class="flex items-center justify-between p-3 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors group cursor-pointer">
             <div class="flex items-center gap-4">
-              <div [class]="'w-10 h-10 rounded-full flex items-center justify-center ' + getCategoryColor(transaction.category)">
+              <div [class]="'w-10 h-10 rounded-full flex items-center justify-center ' + getCategoryColor()">
                 <span class="text-lg">{{ getCategoryEmoji(transaction.category) }}</span>
               </div>
               <div>
@@ -55,7 +55,7 @@ export class RecentTransactionsComponent {
     return map[category] || '💸';
   }
 
-  getCategoryColor(category: string): string {
+  getCategoryColor(): string {
     return 'bg-zinc-100 dark:bg-zinc-700';
   }
 }

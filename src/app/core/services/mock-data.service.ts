@@ -117,6 +117,10 @@ export class MockDataService {
         this.wallets.update(list => list.filter(w => w.id !== id));
     }
 
+    updateWallet(id: string, data: Partial<Wallet>) {
+        this.wallets.update(list => list.map(w => w.id === id ? { ...w, ...data } : w));
+    }
+
     addDebt(debt: Omit<Debt, 'id'>) {
         const newDebt = { ...debt, id: crypto.randomUUID() };
         this.debts.update(list => [...list, newDebt]);
@@ -124,6 +128,10 @@ export class MockDataService {
 
     deleteDebt(id: string) {
         this.debts.update(list => list.filter(d => d.id !== id));
+    }
+
+    updateDebt(id: string, data: Partial<Debt>) {
+        this.debts.update(list => list.map(d => d.id === id ? { ...d, ...data } : d));
     }
 
     payInstallment(debtId: string, amount: number, walletId: string) {
@@ -178,7 +186,7 @@ export class MockDataService {
     }
 
     private translateCategory(cat: string): string {
-        const map: any = { 'Food': 'อาหาร', 'Transport': 'เดินทาง', 'Shopping': 'ช้อปปิ้ง', 'Entertainment': 'บันเทิง', 'Utilities': 'สาธารณูปโภค', 'Other': 'อื่นๆ', 'Salary': 'เงินเดือน', 'Freight': 'จ็อบพิเศษ' };
+        const map: Record<string, string> = { 'Food': 'อาหาร', 'Transport': 'เดินทาง', 'Shopping': 'ช้อปปิ้ง', 'Entertainment': 'บันเทิง', 'Utilities': 'สาธารณูปโภค', 'Other': 'อื่นๆ', 'Salary': 'เงินเดือน', 'Freight': 'จ็อบพิเศษ' };
         return map[cat] || cat;
     }
 }

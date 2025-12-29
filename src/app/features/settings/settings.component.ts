@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MockDataService } from '../../core/services/mock-data.service';
@@ -21,7 +21,7 @@ import { MockDataService } from '../../core/services/mock-data.service';
               
               <div class="flex items-center gap-6 mb-8">
                   <div class="w-20 h-20 rounded-full bg-indigo-500 flex items-center justify-center text-white text-2xl font-bold ring-4 ring-white dark:ring-zinc-700 overflow-hidden">
-                      <img [src]="dataService.user().avatarUrl" class="w-full h-full object-cover">
+                      <img [src]="dataService.user().avatarUrl" alt="User Avatar" class="w-full h-full object-cover">
                   </div>
                   <div>
                       <button class="px-4 py-2 bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 rounded-lg text-sm font-medium hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors">
@@ -34,12 +34,12 @@ import { MockDataService } from '../../core/services/mock-data.service';
               <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4">
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                          <label class="block text-xs font-medium text-zinc-500 mb-1">ชื่อที่แสดง</label>
-                          <input type="text" formControlName="name" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none dark:text-white">
+                          <label for="displayName" class="block text-xs font-medium text-zinc-500 mb-1">ชื่อที่แสดง</label>
+                          <input id="displayName" type="text" formControlName="name" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none dark:text-white">
                       </div>
                       <div>
-                          <label class="block text-xs font-medium text-zinc-500 mb-1">อีเมล</label>
-                          <input type="email" formControlName="email" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none dark:text-white">
+                          <label for="displayEmail" class="block text-xs font-medium text-zinc-500 mb-1">อีเมล</label>
+                          <input id="displayEmail" type="email" formControlName="email" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none dark:text-white">
                       </div>
                   </div>
                   

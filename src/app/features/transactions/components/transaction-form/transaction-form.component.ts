@@ -27,9 +27,9 @@ import { TransactionType } from '../../../../core/models/transaction.interface';
 
         <!-- Amount -->
         <div>
-          <label class="block text-xs font-medium text-zinc-500 mb-1">จำนวนเงิน</label>
+          <label for="amount" class="block text-xs font-medium text-zinc-500 mb-1">จำนวนเงิน</label>
           <div class="relative">
-            <input type="number" formControlName="amount" 
+            <input id="amount" type="number" formControlName="amount" 
               class="w-full text-2xl font-bold bg-transparent border-b-2 border-zinc-200 dark:border-zinc-700 focus:border-emerald-500 focus:outline-none py-2 px-1 placeholder-zinc-300 dark:placeholder-zinc-600 dark:text-white"
               placeholder="0.00" autoFocus>
             <span class="absolute right-0 top-1/2 -translate-y-1/2 text-zinc-400 font-medium">บาท</span>
@@ -38,15 +38,15 @@ import { TransactionType } from '../../../../core/models/transaction.interface';
 
         <!-- Date -->
         <div>
-             <label class="block text-xs font-medium text-zinc-500 mb-1">วันที่และเวลา</label>
-            <input type="datetime-local" formControlName="date"
+             <label for="date" class="block text-xs font-medium text-zinc-500 mb-1">วันที่และเวลา</label>
+            <input id="date" type="datetime-local" formControlName="date"
              class="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none dark:text-white">
         </div>
 
         <!-- Wallet Selection -->
         <div>
-            <label class="block text-xs font-medium text-zinc-500 mb-1">บัญชี/กระเป๋า</label>
-            <select formControlName="walletId" class="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none appearance-none dark:text-white">
+            <label for="walletId" class="block text-xs font-medium text-zinc-500 mb-1">บัญชี/กระเป๋า</label>
+            <select id="walletId" formControlName="walletId" class="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none appearance-none dark:text-white">
                 @for (wallet of dataService.wallets(); track wallet.id) {
                     <option [value]="wallet.id">{{ wallet.name }} ({{ wallet.balance | number }} บาท)</option>
                 }
@@ -56,8 +56,8 @@ import { TransactionType } from '../../../../core/models/transaction.interface';
         <!-- Transfer To Target (Conditional) -->
         @if (currentType() === 'TRANSFER') {
             <div class="animate-in fade-in slide-in-from-top-2">
-                <label class="block text-xs font-medium text-zinc-500 mb-1">โอนไปยัง</label>
-                <select formControlName="toWalletId" class="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none dark:text-white">
+                <label for="toWalletId" class="block text-xs font-medium text-zinc-500 mb-1">โอนไปยัง</label>
+                <select id="toWalletId" formControlName="toWalletId" class="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none dark:text-white">
                      @for (wallet of dataService.wallets(); track wallet.id) {
                          @if (wallet.id !== form.get('walletId')?.value) {
                              <option [value]="wallet.id">{{ wallet.name }}</option>
@@ -70,8 +70,8 @@ import { TransactionType } from '../../../../core/models/transaction.interface';
         <!-- Category -->
         @if (currentType() !== 'TRANSFER') {
             <div>
-              <label class="block text-xs font-medium text-zinc-500 mb-1">หมวดหมู่</label>
-              <select formControlName="category" class="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none dark:text-white">
+              <label for="category" class="block text-xs font-medium text-zinc-500 mb-1">หมวดหมู่</label>
+              <select id="category" formControlName="category" class="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none dark:text-white">
                 @for (cat of categories; track cat) {
                     <option [value]="cat">{{ cat }}</option>
                 }
@@ -81,8 +81,8 @@ import { TransactionType } from '../../../../core/models/transaction.interface';
 
         <!-- Note -->
         <div>
-             <label class="block text-xs font-medium text-zinc-500 mb-1">บันทึกช่วยจำ (ไม่บังคับ)</label>
-            <input type="text" formControlName="description" 
+             <label for="description" class="block text-xs font-medium text-zinc-500 mb-1">บันทึกช่วยจำ (ไม่บังคับ)</label>
+            <input id="description" type="text" formControlName="description" 
             class="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none dark:text-white"
             placeholder="รายการนี้เกียวกับอะไร?">
         </div>

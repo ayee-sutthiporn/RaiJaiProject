@@ -2,7 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MockDataService } from '../../core/services/mock-data.service';
-import { WalletType } from '../../core/models/wallet.interface';
+import { Wallet, WalletType } from '../../core/models/wallet.interface';
 
 @Component({
   selector: 'app-wallets',
@@ -15,7 +15,7 @@ import { WalletType } from '../../core/models/wallet.interface';
           <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">กระเป๋าเงิน</h1>
           <p class="text-zinc-500 dark:text-zinc-400">จัดการกระเป๋าเงินและบัญชีธนาคาร</p>
         </div>
-        <button (click)="openAddModal()" class="bg-zinc-900 dark:bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow hover:opacity-90 transition-opacity flex items-center gap-2">
+        <button (click)="openModal()" class="bg-zinc-900 dark:bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow hover:opacity-90 transition-opacity flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
             เพิ่มกระเป๋า
         </button>
@@ -39,9 +39,14 @@ import { WalletType } from '../../core/models/wallet.interface';
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
                         }
                      </div>
-                     <button (click)="deleteWallet(wallet.id)" class="text-zinc-400 hover:text-red-500 transition-colors p-2" title="ลบกระเป๋า">
-                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-                     </button>
+                     <div class="flex gap-1">
+                        <button (click)="openModal(wallet)" class="text-zinc-400 hover:text-emerald-500 transition-colors p-2" title="แก้ไข">
+                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                        </button>
+                        <button (click)="deleteWallet(wallet.id)" class="text-zinc-400 hover:text-red-500 transition-colors p-2" title="ลบกระเป๋า">
+                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                        </button>
+                     </div>
                  </div>
 
                  <h3 class="text-lg font-bold text-zinc-900 dark:text-white truncate">{{ wallet.name }}</h3>
@@ -61,17 +66,17 @@ import { WalletType } from '../../core/models/wallet.interface';
       @if (showModal()) {
           <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
               <div class="bg-white dark:bg-zinc-900 rounded-2xl p-6 w-full max-w-md shadow-2xl border border-zinc-200 dark:border-zinc-700">
-                  <h2 class="text-xl font-bold mb-4 text-zinc-900 dark:text-white">เพิ่มกระเป๋าใหม่</h2>
+                  <h2 class="text-xl font-bold mb-4 text-zinc-900 dark:text-white">{{ editingId() ? 'แก้ไขกระเป๋า' : 'เพิ่มกระเป๋าใหม่' }}</h2>
                   
                   <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4">
                       <div>
-                          <label class="block text-xs font-medium text-zinc-500 mb-1">ชื่อบัญชี/กระเป๋า</label>
-                          <input type="text" formControlName="name" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none dark:text-white">
+                          <label for="wallet-name" class="block text-xs font-medium text-zinc-500 mb-1">ชื่อบัญชี/กระเป๋า</label>
+                          <input id="wallet-name" type="text" formControlName="name" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none dark:text-white">
                       </div>
                       
                       <div>
-                          <label class="block text-xs font-medium text-zinc-500 mb-1">ประเภท</label>
-                          <select formControlName="type" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none dark:text-white">
+                          <label for="wallet-type" class="block text-xs font-medium text-zinc-500 mb-1">ประเภท</label>
+                          <select id="wallet-type" formControlName="type" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none dark:text-white">
                               <option value="CASH">เงินสด (Cash)</option>
                               <option value="BANK">ธนาคาร (Bank)</option>
                               <option value="CREDIT_CARD">บัตรเครดิต (Credit Card)</option>
@@ -79,13 +84,13 @@ import { WalletType } from '../../core/models/wallet.interface';
                       </div>
 
                       <div>
-                          <label class="block text-xs font-medium text-zinc-500 mb-1">ยอดเงินเริ่มต้น</label>
-                          <input type="number" formControlName="balance" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none dark:text-white">
+                          <label for="wallet-balance" class="block text-xs font-medium text-zinc-500 mb-1">ยอดเงิน</label>
+                          <input id="wallet-balance" type="number" formControlName="balance" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none dark:text-white">
                       </div>
 
                       <div class="grid grid-cols-5 gap-2">
                           @for (color of colors; track color) {
-                              <button type="button" (click)="selectColor(color)" [class]="'w-8 h-8 rounded-full ' + color + (form.get('color')?.value === color ? ' ring-2 ring-offset-2 ring-zinc-500' : '')"></button>
+                              <button type="button" (click)="selectColor(color)" [attr.aria-label]="'เลือก' + getColorLabel(color)" [class]="'w-8 h-8 rounded-full ' + color + (form.get('color')?.value === color ? ' ring-2 ring-offset-2 ring-zinc-500' : '')"></button>
                           }
                       </div>
 
@@ -105,6 +110,7 @@ export class WalletsComponent {
   fb = inject(FormBuilder);
 
   showModal = signal(false);
+  editingId = signal<string | null>(null);
 
   colors = ['bg-emerald-500', 'bg-blue-500', 'bg-purple-500', 'bg-rose-500', 'bg-orange-500', 'bg-zinc-500'];
 
@@ -115,13 +121,25 @@ export class WalletsComponent {
     color: ['bg-emerald-500']
   });
 
-  openAddModal() {
+  openModal(wallet?: Wallet) {
     this.showModal.set(true);
-    this.form.reset({ type: 'CASH', balance: 0, color: 'bg-emerald-500' });
+    if (wallet) {
+      this.editingId.set(wallet.id);
+      this.form.patchValue({
+        name: wallet.name,
+        type: wallet.type,
+        balance: wallet.balance,
+        color: wallet.color
+      });
+    } else {
+      this.editingId.set(null);
+      this.form.reset({ type: 'CASH', balance: 0, color: 'bg-emerald-500' });
+    }
   }
 
   closeModal() {
     this.showModal.set(false);
+    this.editingId.set(null);
   }
 
   selectColor(color: string) {
@@ -137,17 +155,37 @@ export class WalletsComponent {
     }
   }
 
+  getColorLabel(color: string): string {
+    if (color.includes('emerald')) return 'สีเขียว';
+    if (color.includes('blue')) return 'สีน้ำเงิน';
+    if (color.includes('purple')) return 'สีม่วง';
+    if (color.includes('rose')) return 'สีแดงอมชมพู';
+    if (color.includes('orange')) return 'สีส้ม';
+    if (color.includes('zinc')) return 'สีเทา';
+    return 'เลือกสี';
+  }
+
   onSubmit() {
     if (this.form.valid) {
       const val = this.form.getRawValue();
-      this.dataService.addWallet({
-        name: val.name!,
-        type: val.type!,
-        balance: val.balance!,
-        currency: 'THB',
-        color: val.color!,
-        ownerId: this.dataService.user().id
-      });
+
+      if (this.editingId()) {
+        this.dataService.updateWallet(this.editingId()!, {
+          name: val.name!,
+          type: val.type!,
+          balance: val.balance!,
+          color: val.color!
+        });
+      } else {
+        this.dataService.addWallet({
+          name: val.name!,
+          type: val.type!,
+          balance: val.balance!,
+          currency: 'THB',
+          color: val.color!,
+          ownerId: this.dataService.user().id
+        });
+      }
       this.closeModal();
     }
   }
