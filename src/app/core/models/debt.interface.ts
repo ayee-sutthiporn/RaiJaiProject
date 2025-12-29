@@ -16,6 +16,7 @@ export interface Debt {
     type: DebtType;
     totalAmount: number;
     remainingAmount: number;
+    remark?: string;
     dueDate?: string; // Next due date
     personName: string; // The counterparty
     isInstallment: boolean;

@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MockDataService } from '../../core/services/mock-data.service';
@@ -40,15 +40,18 @@ import { HistoryListComponent } from '../../shared/components/history-list/histo
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
                         }
                      </div>
-                     <div class="flex gap-1">
-                        <button (click)="openModal(wallet)" class="text-zinc-400 hover:text-emerald-500 transition-colors p-2" title="แก้ไข">
-                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
-                        </button>
+                       <div class="flex gap-2">
+                           <button (click)="openTransactionsModal(wallet.id)" class="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors text-white" title="รายการเดินบัญชี">
+                               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>
+                           </button>
+                           <button (click)="openHistoryModal(wallet)" class="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors text-white" title="ประวัติการแก้ไข">
+                               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/></svg>
+                           </button>
+                           <button (click)="openModal(wallet)" class="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors text-white" title="แก้ไข">
+                               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                           </button>
                         <button (click)="deleteWallet(wallet.id)" class="text-zinc-400 hover:text-red-500 transition-colors p-2" title="ลบกระเป๋า">
                              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-                        </button>
-                        <button (click)="openHistoryModal(wallet)" class="text-zinc-400 hover:text-blue-400 transition-colors p-2" title="ประวัติการแก้ไข">
-                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/></svg>
                         </button>
                      </div>
                  </div>
@@ -122,10 +125,48 @@ import { HistoryListComponent } from '../../shared/components/history-list/histo
                   </div>
                   
                   <app-history-list [history]="selectedWalletForHistory()?.history || []"></app-history-list>
-              </div>
-          </div>
-      }
-    </div>
+            </div>
+        </div>
+    }
+
+    <!-- Transactions Modal -->
+    @if (showTransactionsModal()) {
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+            <div class="bg-white dark:bg-zinc-900 rounded-2xl p-6 w-full max-w-lg shadow-2xl border border-zinc-200 dark:border-zinc-700 max-h-[80vh] overflow-y-auto">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-zinc-900 dark:text-white">รายการเดินบัญชี</h2>
+                    <button (click)="closeTransactionsModal()" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 18 18"/></svg>
+                    </button>
+                </div>
+                
+                <div class="space-y-3">
+                    @for (tx of selectedWalletTransactions(); track tx.id) {
+                        <div class="flex justify-between items-center p-3 bg-zinc-50 dark:bg-zinc-800 rounded-xl border border-zinc-100 dark:border-zinc-700">
+                            <div class="flex items-center gap-3">
+                                <div [class]="'p-2 rounded-full ' + (tx.type === 'INCOME' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400')">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        @if(tx.type === 'INCOME') { <path d="M12 19V5"/><path d="m5 12 7-7 7 7"/> } 
+                                        @else { <path d="M12 5v14"/><path d="m19 12-7 7-7-7"/> }
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="font-bold text-sm text-zinc-900 dark:text-white">{{ tx.description || tx.category }}</p>
+                                    <p class="text-xs text-zinc-500">{{ tx.date | date:'d MMM yyyy, HH:mm' }}</p>
+                                </div>
+                            </div>
+                            <span [class]="'font-bold ' + (tx.type === 'INCOME' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')">
+                                {{ tx.type === 'INCOME' ? '+' : '-' }}{{ tx.amount | number }}
+                            </span>
+                        </div>
+                    } @empty {
+                         <div class="text-center py-8 text-zinc-400">ไม่มีรายการเคลื่อนไหว</div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+  </div>
   `
 })
 export class WalletsComponent {
@@ -137,6 +178,18 @@ export class WalletsComponent {
 
   showHistoryModal = signal(false);
   selectedWalletForHistory = signal<Wallet | null>(null);
+
+  showTransactionsModal = signal(false);
+  selectedWalletIdForTransactions = signal<string | null>(null);
+
+  selectedWalletTransactions = computed(() => {
+    const walletId = this.selectedWalletIdForTransactions();
+    if (!walletId) return [];
+    return this.dataService.transactions()
+      .filter(t => t.walletId === walletId)
+      // Sort by date desc
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  });
 
   colors = ['bg-emerald-500', 'bg-blue-500', 'bg-purple-500', 'bg-rose-500', 'bg-orange-500', 'bg-zinc-500'];
 
@@ -230,5 +283,15 @@ export class WalletsComponent {
   closeHistoryModal() {
     this.showHistoryModal.set(false);
     this.selectedWalletForHistory.set(null);
+  }
+
+  openTransactionsModal(walletId: string) {
+    this.selectedWalletIdForTransactions.set(walletId);
+    this.showTransactionsModal.set(true);
+  }
+
+  closeTransactionsModal() {
+    this.showTransactionsModal.set(false);
+    this.selectedWalletIdForTransactions.set(null);
   }
 }

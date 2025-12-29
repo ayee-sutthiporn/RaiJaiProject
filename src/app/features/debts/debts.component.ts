@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MockDataService } from '../../core/services/mock-data.service';
@@ -23,9 +23,28 @@ import { HistoryListComponent } from '../../shared/components/history-list/histo
         </button>
       </header>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-           @for (debt of dataService.debts(); track debt.id) {
-               <div class="bg-white dark:bg-zinc-800 rounded-2xl p-6 border border-zinc-200 dark:border-zinc-700 shadow-sm">
+      <div class="flex gap-4 border-b border-zinc-200 dark:border-zinc-700 mb-6">
+          <button (click)="activeTab.set('active')" [class]="'pb-2 px-4 text-sm font-medium transition-colors relative ' + (activeTab() === 'active' ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200')">
+              รายการคงค้าง
+              @if(activeTab() === 'active') { <div class="absolute bottom-0 left-0 w-full h-0.5 bg-emerald-500 rounded-t-full"></div> }
+          </button>
+          <button (click)="activeTab.set('completed')" [class]="'pb-2 px-4 text-sm font-medium transition-colors relative ' + (activeTab() === 'completed' ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200')">
+              ชำระครบแล้ว
+              @if(activeTab() === 'completed') { <div class="absolute bottom-0 left-0 w-full h-0.5 bg-emerald-500 rounded-t-full"></div> }
+          </button>
+      </div>
+
+       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+           @for (debt of filteredDebts(); track debt.id) {
+               <div class="bg-white dark:bg-zinc-800 rounded-2xl p-6 border border-zinc-200 dark:border-zinc-700 shadow-sm relative group">
+                   @if (debt.remainingAmount === 0) {
+                      <div class="absolute top-4 right-4 z-10">
+                          <span class="bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400 text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                              ชำระครบแล้ว
+                          </span>
+                      </div>
+                   }
                    <div class="flex justify-between items-start mb-4">
                        <div>
                            <span [class]="'text-xs font-bold px-2 py-1 rounded-md ' + (debt.type === 'BORROWED' ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400')">
@@ -33,11 +52,19 @@ import { HistoryListComponent } from '../../shared/components/history-list/histo
                            </span>
                            <h3 class="font-bold text-lg mt-2 text-zinc-900 dark:text-white">{{ debt.title }}</h3>
                            <p class="text-zinc-500 text-sm">คู่สัญญา: {{ debt.personName }}</p>
+                           @if (debt.remark) {
+                               <p class="text-xs text-zinc-400 mt-1 flex items-start gap-1">
+                                   <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                                   {{ debt.remark }}
+                               </p>
+                           }
                        </div>
                        <div class="flex gap-2">
-                            <button (click)="openPayModal(debt)" class="text-zinc-400 hover:text-emerald-500 transition-colors" title="จ่าย/อัปเดตยอด">
-                               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                           </button>
+                            @if (debt.remainingAmount > 0) {
+                             <button (click)="openPayModal(debt)" class="text-zinc-400 hover:text-emerald-500 transition-colors" title="จ่าย/อัปเดตยอด">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                            </button>
+                            }
                            <button (click)="openModal(debt)" class="text-zinc-400 hover:text-blue-500 transition-colors" title="แก้ไข">
                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
                            </button>
@@ -129,6 +156,10 @@ import { HistoryListComponent } from '../../shared/components/history-list/histo
                           <label for="personName" class="block text-xs font-medium text-zinc-500 mb-1">ชื่อคู่สัญญา</label>
                           <input id="personName" type="text" formControlName="personName" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none dark:text-white">
                       </div>
+                      <div>
+                          <label for="debtRemark" class="block text-xs font-medium text-zinc-500 mb-1">หมายเหตุ (Remark)</label>
+                          <textarea id="debtRemark" formControlName="remark" rows="2" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none dark:text-white"></textarea>
+                      </div>
 
                       <div class="pt-2 border-t border-zinc-100 dark:border-zinc-700/50">
                            <div class="flex items-center gap-2 mb-3">
@@ -147,6 +178,10 @@ import { HistoryListComponent } from '../../shared/components/history-list/histo
                                             <label for="interestRate" class="block text-xs font-medium text-zinc-500 mb-1">ดอกเบี้ย (%)</label>
                                             <input id="interestRate" type="number" formControlName="interestRate" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none dark:text-white">
                                        </div>
+                                   </div>
+                                   <div>
+                                        <label for="startDate" class="block text-xs font-medium text-zinc-500 mb-1">วันที่เริ่มผ่อน</label>
+                                        <input id="startDate" type="date" formControlName="startDate" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none dark:text-white">
                                    </div>
                                     <div class="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
                                        <p class="text-xs text-blue-600 dark:text-blue-400">
@@ -224,16 +259,28 @@ export class DebtsComponent {
     fb = inject(FormBuilder);
     showModal = signal(false);
     editingId = signal<string | null>(null);
+    activeTab = signal<'active' | 'completed'>('active');
+
+    filteredDebts = computed(() => {
+        const debts = this.dataService.debts();
+        if (this.activeTab() === 'active') {
+            return debts.filter(d => d.remainingAmount > 0);
+        } else {
+            return debts.filter(d => d.remainingAmount === 0);
+        }
+    });
 
     form = this.fb.group({
         title: ['', Validators.required],
         type: ['BORROWED' as DebtType, Validators.required],
         amount: [0, [Validators.required, Validators.min(1)]],
         personName: ['', Validators.required],
+        remark: [''],
         // New Installment Fields
         isInstallment: [false],
         totalMonths: [1],
-        interestRate: [0]
+        interestRate: [0],
+        startDate: [new Date().toISOString().split('T')[0]]
     });
 
     payForm = this.fb.group({
@@ -258,9 +305,11 @@ export class DebtsComponent {
                 type: debt.type,
                 amount: debt.totalAmount, // Note: Should we allow editing Total Amount easily? Yes for simplistic CRUD.
                 personName: debt.personName,
+                remark: debt.remark || '',
                 isInstallment: debt.isInstallment,
-                totalMonths: debt.installmentPlan?.totalMonths || 12,
-                interestRate: debt.installmentPlan?.interestRate || 0
+                totalMonths: debt.installmentPlan?.totalMonths || 1,
+                interestRate: debt.installmentPlan?.interestRate || 0,
+                startDate: debt.installmentPlan?.startDate ? new Date(debt.installmentPlan.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
             });
         } else {
             this.editingId.set(null);
@@ -269,7 +318,8 @@ export class DebtsComponent {
                 amount: 0,
                 isInstallment: false,
                 totalMonths: 12,
-                interestRate: 0
+                interestRate: 0,
+                startDate: new Date().toISOString().split('T')[0]
             });
         }
     }
@@ -308,7 +358,7 @@ export class DebtsComponent {
                     // Ideally we should preserve paidMonths if editing.
                     // Let's get the original if editing.
                     interestRate: val.interestRate || 0,
-                    startDate: new Date().toISOString(),
+                    startDate: val.startDate || new Date().toISOString(),
                     monthlyAmount: this.calculateMonthlyPayment()
                 };
             }
@@ -326,17 +376,13 @@ export class DebtsComponent {
                 title: val.title!,
                 type: val.type as DebtType,
                 totalAmount: val.amount!,
-                remainingAmount: 0, // Initial value, will be calculated below 
-                // COMPLEXITY: If user changes Total from 5000 to 6000, and remaining was 2000 (paid 3000), 
-                // new remaining should be 6000 - 3000 = 3000? 
-                // For now, let's just reset remaining to total if it is a fresh edit, OR keep logic simple:
-                // If create: remaining = total
-                // If edit: logic needed.
+                remainingAmount: val.amount!, // Default for new
                 personName: val.personName!,
+                remark: val.remark || undefined,
                 isInstallment: val.isInstallment || false,
                 installmentPlan: installmentPlan,
                 autoDeduct: false,
-                walletId: 'w1'
+                walletId: this.dataService.wallets()[0]?.id || '' // Default wallet
             };
 
             if (this.editingId()) {
