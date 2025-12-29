@@ -4,7 +4,7 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { ThemeService } from '../services/theme.service';
 import { NotificationDropdownComponent } from '../components/notification-dropdown.component';
 import { NotificationService } from '../services/notification.service';
-import { AuthService } from '../auth/auth.service';
+
 
 @Component({
     selector: 'app-main-layout',
@@ -43,10 +43,11 @@ import { AuthService } from '../auth/auth.service';
         </nav>
 
         <div class="px-6 py-4">
-            <button (click)="authService.logout()" class="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all mb-2 group">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="group-hover:-translate-x-1 transition-transform"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
-                <span class="font-medium">ออกจากระบบ</span>
-            </button>
+            <a href="https://portal.sutthiporn.dev" class="w-full flex items-center gap-3 px-4 py-3 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-all mb-2 group">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="group-hover:-translate-x-1 transition-transform"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+                <span class="font-medium">กลับไปที่ Portal</span>
+            </a>
+
              <!-- User Profile (Desktop Sidebar) -->
              <div class="flex items-center gap-3 p-3 bg-zinc-50 dark:bg-zinc-700/30 rounded-xl border border-zinc-100 dark:border-zinc-700">
                  <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold overflow-hidden shadow-sm">
@@ -188,10 +189,11 @@ import { AuthService } from '../auth/auth.service';
 
                 <!-- Footer -->
                  <div class="p-6">
-                    <button (click)="authService.logout()" class="w-full flex items-center justify-center p-3 rounded-2xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-medium hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors gap-2 mb-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
-                        <span>ออกจากระบบ</span>
-                    </button>
+
+                    <a href="https://portal.sutthiporn.dev" class="w-full flex items-center justify-center p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-300 font-medium hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors gap-2 mb-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+                        <span>กลับไปที่ Portal</span>
+                    </a>
                     <button (click)="themeService.toggle()" class="w-full flex items-center justify-center p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-300 font-medium hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors gap-2">
                         @if (themeService.darkMode()) {
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
@@ -212,7 +214,7 @@ import { AuthService } from '../auth/auth.service';
 export class MainLayoutComponent {
     themeService = inject(ThemeService);
     notificationService = inject(NotificationService);
-    authService = inject(AuthService);
+
     isMobileMenuOpen = signal(false);
     showNotifications = signal(false);
 
