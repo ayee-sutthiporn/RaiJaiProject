@@ -39,15 +39,21 @@ import { MockDataService } from '../../core/services/mock-data.service';
          <!-- Removed Inline Form -->
 
           <div class="bg-white dark:bg-zinc-800 rounded-2xl p-6 border border-zinc-200 dark:border-zinc-700 shadow-sm">
-             <div class="flex justify-between items-center mb-4">
-                 <h3 class="font-bold text-zinc-900 dark:text-white">ประวัติรายการ</h3>
-                 <!-- Category Filter Dropdown -->
-                 <select [value]="filterCategoryId() || ''" (change)="setFilterCategory($event)" class="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 dark:text-white">
-                     <option value="">ทุกหมวดหมู่</option>
-                     @for (cat of dataService.categories(); track cat.id) {
-                         <option [value]="cat.name">{{ cat.name }}</option>
-                     }
-                 </select>
+             <div class="flex justify-between items-center mb-4 gap-2 flex-wrap">
+                 <h3 class="font-bold text-zinc-900 dark:text-white whitespace-nowrap">ประวัติรายการ</h3>
+                 <!-- Filters Group -->
+                 <div class="flex items-center gap-2">
+                     <!-- Date Filter -->
+                     <input type="date" [value]="filterDate() || ''" (change)="setFilterDate($event)" class="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 dark:text-white">
+                     
+                     <!-- Category Filter Dropdown -->
+                     <select [value]="filterCategoryId() || ''" (change)="setFilterCategory($event)" class="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 dark:text-white max-w-[140px]">
+                         <option value="">ทุกหมวดหมู่</option>
+                         @for (cat of dataService.categories(); track cat.id) {
+                             <option [value]="cat.name">{{ cat.name }}</option>
+                         }
+                     </select>
+                 </div>
              </div>
              
              <div class="space-y-3">
@@ -98,6 +104,7 @@ export class TransactionsPageComponent {
     showModal = signal(false);
     filterType = signal<'ALL' | 'INCOME' | 'EXPENSE'>('ALL');
     filterCategoryId = signal<string | null>(null);
+    filterDate = signal<string | null>(null);
 
     filteredTransactions = computed(() => {
         let txs = this.dataService.transactions();
@@ -110,6 +117,12 @@ export class TransactionsPageComponent {
         // Filter Category
         if (this.filterCategoryId()) {
             txs = txs.filter(t => t.category === this.filterCategoryId());
+        }
+
+        // Filter Date
+        if (this.filterDate()) {
+            const target = new Date(this.filterDate()!).toDateString();
+            txs = txs.filter(t => new Date(t.date).toDateString() === target);
         }
 
         // Sort by date desc
@@ -126,6 +139,11 @@ export class TransactionsPageComponent {
     setFilterCategory(event: Event) {
         const val = (event.target as HTMLSelectElement).value;
         this.filterCategoryId.set(val === '' ? null : val);
+    }
+
+    setFilterDate(event: Event) {
+        const val = (event.target as HTMLInputElement).value;
+        this.filterDate.set(val === '' ? null : val);
     }
 
     getCategoryColor(type: string): string {

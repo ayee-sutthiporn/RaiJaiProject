@@ -32,6 +32,10 @@ import { NotificationService } from '../services/notification.service';
                 <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="group-hover:scale-110 transition-transform"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
                 <span class="font-medium">กระเป๋าเงิน</span>
             </a>
+            <a routerLink="/categories" routerLinkActive="bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400 shadow-sm" class="flex items-center gap-3 px-4 py-3 text-zinc-600 dark:text-zinc-400 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-all group">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="group-hover:scale-110 transition-transform"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><path d="M7 7h.01"/></svg>
+                <span class="font-medium">หมวดหมู่</span>
+            </a>
              <a routerLink="/debts" routerLinkActive="bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400 shadow-sm" class="flex items-center gap-3 px-4 py-3 text-zinc-600 dark:text-zinc-400 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-all group">
                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="group-hover:scale-110 transition-transform"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 <span class="font-medium">หนี้สิน</span>
@@ -176,6 +180,10 @@ import { NotificationService } from '../services/notification.service';
                     <a routerLink="/wallets" (click)="toggleMobileMenu()" routerLinkActive="bg-emerald-500 text-white shadow-lg shadow-emerald-500/30" class="flex items-center gap-4 px-4 py-3.5 text-zinc-600 dark:text-zinc-400 rounded-2xl transition-all active:scale-95 duration-200 hover:bg-zinc-50 dark:hover:bg-zinc-800">
                         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
                         <span class="font-medium">กระเป๋าเงิน</span>
+                    </a>
+                    <a routerLink="/categories" (click)="toggleMobileMenu()" routerLinkActive="bg-emerald-500 text-white shadow-lg shadow-emerald-500/30" class="flex items-center gap-4 px-4 py-3.5 text-zinc-600 dark:text-zinc-400 rounded-2xl transition-all active:scale-95 duration-200 hover:bg-zinc-50 dark:hover:bg-zinc-800">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><path d="M7 7h.01"/></svg>
+                        <span class="font-medium">หมวดหมู่</span>
                     </a>
                     <a routerLink="/debts" (click)="toggleMobileMenu()" routerLinkActive="bg-emerald-500 text-white shadow-lg shadow-emerald-500/30" class="flex items-center gap-4 px-4 py-3.5 text-zinc-600 dark:text-zinc-400 rounded-2xl transition-all active:scale-95 duration-200 hover:bg-zinc-50 dark:hover:bg-zinc-800">
                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
