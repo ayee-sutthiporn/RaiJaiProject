@@ -44,7 +44,12 @@ import { MockDataService } from '../../core/services/mock-data.service';
                  <!-- Filters Group -->
                  <div class="flex items-center gap-2">
                      <!-- Date Filter -->
-                     <input type="date" [value]="filterDate() || ''" (change)="setFilterDate($event)" class="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 dark:text-white">
+                     <!-- Date Range Filter -->
+                     <div class="flex items-center gap-1">
+                        <input type="date" [value]="startDate() || ''" (change)="setStartDate($event)" class="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 dark:text-white w-32" placeholder="Start">
+                        <span class="text-zinc-400">-</span>
+                        <input type="date" [value]="endDate() || ''" (change)="setEndDate($event)" class="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 dark:text-white w-32" placeholder="End">
+                     </div>
                      
                      <!-- Category Filter Dropdown -->
                      <select [value]="filterCategoryId() || ''" (change)="setFilterCategory($event)" class="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 dark:text-white max-w-[140px]">
@@ -104,7 +109,8 @@ export class TransactionsPageComponent {
     showModal = signal(false);
     filterType = signal<'ALL' | 'INCOME' | 'EXPENSE'>('ALL');
     filterCategoryId = signal<string | null>(null);
-    filterDate = signal<string | null>(null);
+    startDate = signal<string | null>(null);
+    endDate = signal<string | null>(null);
 
     filteredTransactions = computed(() => {
         let txs = this.dataService.transactions();
@@ -119,10 +125,17 @@ export class TransactionsPageComponent {
             txs = txs.filter(t => t.category === this.filterCategoryId());
         }
 
-        // Filter Date
-        if (this.filterDate()) {
-            const target = new Date(this.filterDate()!).toDateString();
-            txs = txs.filter(t => new Date(t.date).toDateString() === target);
+        // Filter Date Range
+        if (this.startDate()) {
+            const start = new Date(this.startDate()!);
+            start.setHours(0, 0, 0, 0); // Start of day
+            txs = txs.filter(t => new Date(t.date) >= start);
+        }
+
+        if (this.endDate()) {
+            const end = new Date(this.endDate()!);
+            end.setHours(23, 59, 59, 999); // End of day
+            txs = txs.filter(t => new Date(t.date) <= end);
         }
 
         // Sort by date desc
@@ -141,9 +154,14 @@ export class TransactionsPageComponent {
         this.filterCategoryId.set(val === '' ? null : val);
     }
 
-    setFilterDate(event: Event) {
+    setStartDate(event: Event) {
         const val = (event.target as HTMLInputElement).value;
-        this.filterDate.set(val === '' ? null : val);
+        this.startDate.set(val === '' ? null : val);
+    }
+
+    setEndDate(event: Event) {
+        const val = (event.target as HTMLInputElement).value;
+        this.endDate.set(val === '' ? null : val);
     }
 
     getCategoryColor(type: string): string {

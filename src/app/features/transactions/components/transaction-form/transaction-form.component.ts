@@ -1,4 +1,4 @@
-import { Component, inject, signal, output } from '@angular/core';
+import { Component, inject, signal, output, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, FormGroup } from '@angular/forms';
 import { MockDataService } from '../../../../core/services/mock-data.service';
@@ -72,7 +72,7 @@ import { TransactionType } from '../../../../core/models/transaction.interface';
             <div>
               <label for="category" class="block text-xs font-medium text-zinc-500 mb-1">หมวดหมู่</label>
               <select id="category" formControlName="category" class="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none dark:text-white">
-                @for (cat of categories(); track cat.id) {
+                @for (cat of availableCategories(); track cat.id) {
                     <option [value]="cat.name">{{ cat.name }} {{ cat.icon }}</option>
                 }
               </select>
@@ -107,6 +107,11 @@ export class TransactionFormComponent {
     currentType = signal<TransactionType>('EXPENSE');
 
     categories = this.dataService.categories;
+
+    availableCategories = computed(() => {
+        const type = this.currentType();
+        return this.categories().filter(c => c.type === type);
+    });
 
     form: FormGroup = this.fb.group({
         amount: [null, [Validators.required, Validators.min(1)]],
