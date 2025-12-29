@@ -5,4 +5,5 @@ export interface HistoryLog {
     details: string; // Human readable description
     previousValue?: unknown; // Snapshot of changed fields if needed
     newValue?: unknown;
+    changes?: string[];
 }

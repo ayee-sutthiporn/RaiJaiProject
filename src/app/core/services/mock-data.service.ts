@@ -123,7 +123,10 @@ export class MockDataService {
         this.wallets.update(list => list.map(w => {
             if (w.id === id) {
                 const updated = { ...w, ...data };
-                this.recordHistory(updated, 'UPDATE', 'แก้ไขข้อมูลกระเป๋าเงิน', w);
+                const changes = this.generateDiff(w, updated);
+                if (changes.length > 0) {
+                    this.recordHistory(updated, 'UPDATE', 'แก้ไขข้อมูลกระเป๋าเงิน', w, changes);
+                }
                 return updated;
             }
             return w;
@@ -144,7 +147,10 @@ export class MockDataService {
         this.debts.update(list => list.map(d => {
             if (d.id === id) {
                 const updated = { ...d, ...data };
-                this.recordHistory(updated, 'UPDATE', 'แก้ไขรายการหนี้สิน', d);
+                const changes = this.generateDiff(d, updated);
+                if (changes.length > 0) {
+                    this.recordHistory(updated, 'UPDATE', 'แก้ไขรายการหนี้สิน', d, changes);
+                }
                 return updated;
             }
             return d;
@@ -209,19 +215,71 @@ export class MockDataService {
         return map[cat] || cat;
     }
 
-    private recordHistory(entity: { history?: HistoryLog[] }, action: 'CREATE' | 'UPDATE' | 'DELETE' | 'PAYMENT', details: string, previousValue?: unknown) {
+    private recordHistory(entity: { history?: HistoryLog[] }, action: 'CREATE' | 'UPDATE' | 'DELETE' | 'PAYMENT', details: string, previousValue?: unknown, changes?: string[]) {
         const log: HistoryLog = {
             id: crypto.randomUUID(),
             action,
             timestamp: new Date().toISOString(),
             details,
             previousValue: previousValue ? JSON.parse(JSON.stringify(previousValue)) : undefined,
-            newValue: JSON.parse(JSON.stringify(entity))
+            newValue: JSON.parse(JSON.stringify(entity)),
+            changes
         };
 
         if (!entity.history) {
             entity.history = [];
         }
         entity.history.unshift(log);
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    private generateDiff(oldObj: any, newObj: any): string[] {
+        const changes: string[] = [];
+        const ignoreFields = ['id', 'history', 'ownerId', 'sharedWithIds', 'createdById'];
+
+        // Helper to formatting values
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const formatVal = (val: any) => {
+            if (typeof val === 'number') return val.toLocaleString();
+            return val;
+        }
+
+        const keys = new Set([...Object.keys(oldObj), ...Object.keys(newObj)]);
+
+        keys.forEach(key => {
+            if (ignoreFields.includes(key)) return;
+
+            const oldVal = oldObj[key];
+            const newVal = newObj[key];
+
+            // Deep compare for object (like installmentPlan)
+            if (typeof oldVal === 'object' && oldVal !== null && typeof newVal === 'object' && newVal !== null) {
+                if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
+                    // Check specific sub-fields if needed, or just say field changed
+                    if (key === 'installmentPlan') {
+                        if (oldVal.monthlyAmount !== newVal.monthlyAmount) changes.push(`ยอดผ่อนต่อเดือน: ${formatVal(oldVal.monthlyAmount)} -> ${formatVal(newVal.monthlyAmount)}`);
+                        if (oldVal.interestRate !== newVal.interestRate) changes.push(`ดอกเบี้ย: ${oldVal.interestRate}% -> ${newVal.interestRate}%`);
+                        if (oldVal.totalMonths !== newVal.totalMonths) changes.push(`จำนวนงวด: ${oldVal.totalMonths} -> ${newVal.totalMonths}`);
+                    } else {
+                        changes.push(`ปรับปรุงข้อมูล ${key}`);
+                    }
+                }
+                return;
+            }
+
+            if (oldVal !== newVal) {
+                // Translate keys for better readability if needed
+                let label = key;
+                if (key === 'name' || key === 'title') label = 'ชื่อ';
+                if (key === 'balance' || key === 'totalAmount') label = 'ยอดเงิน';
+                if (key === 'type') label = 'ประเภท';
+                if (key === 'personName') label = 'คู่สัญญา';
+                if (key === 'remainingAmount') label = 'ยอดคงเหลือ';
+
+                changes.push(`${label}: ${formatVal(oldVal)} -> ${formatVal(newVal)}`);
+            }
+        });
+
+        return changes;
     }
 }
