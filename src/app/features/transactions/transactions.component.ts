@@ -1,7 +1,7 @@
 import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
 import { TransactionFormComponent } from './components/transaction-form/transaction-form.component';
-import { MockDataService } from '../../core/services/mock-data.service';
+import { DataService } from '../../core/services/data.service';
 
 @Component({
     selector: 'app-transactions-page',
@@ -55,7 +55,7 @@ import { MockDataService } from '../../core/services/mock-data.service';
                      <select [value]="filterCategoryId() || ''" (change)="setFilterCategory($event)" class="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 dark:text-white max-w-[140px]">
                          <option value="">ทุกหมวดหมู่</option>
                          @for (cat of dataService.categories(); track cat.id) {
-                             <option [value]="cat.name">{{ cat.name }}</option>
+                             <option [value]="cat.id">{{ cat.name }}</option>
                          }
                      </select>
                  </div>
@@ -66,10 +66,10 @@ import { MockDataService } from '../../core/services/mock-data.service';
                     <div class="flex items-center justify-between p-3 rounded-xl bg-zinc-50 dark:bg-zinc-700/30 group">
                         <div class="flex items-center gap-3">
                             <div [class]="'w-10 h-10 rounded-full flex items-center justify-center text-lg ' + getCategoryColor(tx.type)">
-                                {{ getEmoji(tx.category) }}
+                                {{ tx.category?.icon || '📝' }}
                             </div>
                             <div>
-                                <p class="font-medium text-zinc-900 dark:text-white text-sm">{{ tx.category }}</p>
+                                <p class="font-medium text-zinc-900 dark:text-white text-sm">{{ tx.category?.name || 'ไม่มีหมวดหมู่' }}</p>
                                 <p class="text-xs text-zinc-500">{{ tx.date | date:'d/MM/yy HH:mm' }} • {{ tx.description || '-' }}</p>
                             </div>
                         </div>
@@ -104,7 +104,7 @@ import { MockDataService } from '../../core/services/mock-data.service';
   `
 })
 export class TransactionsPageComponent {
-    dataService = inject(MockDataService);
+    dataService = inject(DataService);
 
     showModal = signal(false);
     filterType = signal<'ALL' | 'INCOME' | 'EXPENSE'>('ALL');
@@ -122,7 +122,7 @@ export class TransactionsPageComponent {
 
         // Filter Category
         if (this.filterCategoryId()) {
-            txs = txs.filter(t => t.category === this.filterCategoryId());
+            txs = txs.filter(t => t.categoryId === this.filterCategoryId());
         }
 
         // Filter Date Range
@@ -170,10 +170,5 @@ export class TransactionsPageComponent {
             case 'EXPENSE': return 'bg-rose-100 dark:bg-rose-900/30';
             default: return 'bg-blue-100 dark:bg-blue-900/30';
         }
-    }
-
-    getEmoji(category: string): string {
-        const cat = this.dataService.categories().find(c => c.name === category);
-        return cat?.icon || '📝';
     }
 }

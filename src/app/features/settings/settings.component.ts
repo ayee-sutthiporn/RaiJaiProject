@@ -1,7 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MockDataService } from '../../core/services/mock-data.service';
+import { DataService } from '../../core/services/data.service';
 
 @Component({
   selector: 'app-settings',
@@ -22,7 +22,7 @@ import { MockDataService } from '../../core/services/mock-data.service';
                   
                   <div class="flex items-center gap-6 mb-8">
                       <div class="w-20 h-20 rounded-full bg-indigo-500 flex items-center justify-center text-white text-2xl font-bold ring-4 ring-white dark:ring-zinc-700 overflow-hidden">
-                          <img [src]="dataService.user().avatarUrl" alt="User Avatar" class="w-full h-full object-cover">
+                          <img [src]="dataService.user()?.avatarUrl" alt="User Avatar" class="w-full h-full object-cover">
                       </div>
                       <div>
                           <button class="px-4 py-2 bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 rounded-lg text-sm font-medium hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors">
@@ -78,17 +78,18 @@ import { MockDataService } from '../../core/services/mock-data.service';
   `
 })
 export class SettingsComponent {
-  dataService = inject(MockDataService);
+  dataService = inject(DataService);
   fb = inject(FormBuilder);
 
   form = this.fb.group({
-    name: [this.dataService.user().name, Validators.required],
-    email: [this.dataService.user().email, [Validators.required, Validators.email]]
+    name: [this.dataService.user()?.name || '', Validators.required],
+    email: [this.dataService.user()?.email || '', [Validators.required, Validators.email]]
   });
 
   onSubmit() {
     if (this.form.valid) {
-      alert('บันทึกข้อมูลเรียบร้อย!');
+      // API update not implemented yet
+      alert('บันทึกข้อมูลเรียบร้อย (Mock)!');
       this.form.markAsPristine();
     }
   }

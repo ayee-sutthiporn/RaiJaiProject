@@ -1,7 +1,7 @@
 import { Component, inject, signal, output, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, FormGroup } from '@angular/forms';
-import { MockDataService } from '../../../../core/services/mock-data.service';
+import { DataService } from '../../../../core/services/data.service';
 import { TransactionType } from '../../../../core/models/transaction.interface';
 
 @Component({
@@ -70,10 +70,10 @@ import { TransactionType } from '../../../../core/models/transaction.interface';
         <!-- Category -->
         @if (currentType() !== 'TRANSFER') {
             <div>
-              <label for="category" class="block text-xs font-medium text-zinc-500 mb-1">หมวดหมู่</label>
-              <select id="category" formControlName="category" class="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none dark:text-white">
+              <label for="categoryId" class="block text-xs font-medium text-zinc-500 mb-1">หมวดหมู่</label>
+              <select id="categoryId" formControlName="categoryId" class="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none dark:text-white">
                 @for (cat of availableCategories(); track cat.id) {
-                    <option [value]="cat.name">{{ cat.name }} {{ cat.icon }}</option>
+                    <option [value]="cat.id">{{ cat.name }} {{ cat.icon }}</option>
                 }
               </select>
             </div>
@@ -99,7 +99,7 @@ import { TransactionType } from '../../../../core/models/transaction.interface';
   `
 })
 export class TransactionFormComponent {
-    dataService = inject(MockDataService);
+    dataService = inject(DataService);
     fb = inject(FormBuilder);
     formSubmitted = output<void>();
 
@@ -119,7 +119,7 @@ export class TransactionFormComponent {
         type: ['EXPENSE', Validators.required],
         walletId: ['', Validators.required],
         toWalletId: [''],
-        category: ['อาหาร'],
+        categoryId: [''],
         description: ['']
     });
 
@@ -135,10 +135,10 @@ export class TransactionFormComponent {
         this.form.patchValue({ type });
 
         if (type === 'TRANSFER') {
-            this.form.get('category')?.disable();
+            this.form.get('categoryId')?.disable();
             this.form.get('toWalletId')?.setValidators(Validators.required);
         } else {
-            this.form.get('category')?.enable();
+            this.form.get('categoryId')?.enable();
             this.form.get('toWalletId')?.clearValidators();
         }
         this.form.get('toWalletId')?.updateValueAndValidity();
@@ -162,25 +162,31 @@ export class TransactionFormComponent {
         }
     }
 
-    onSubmit() {
+    async onSubmit() {
         if (this.form.valid) {
             const formVal = this.form.getRawValue();
-            this.dataService.addTransaction({
-                amount: formVal.amount,
-                date: new Date(formVal.date).toISOString(),
-                type: formVal.type,
-                walletId: formVal.walletId,
-                toWalletId: formVal.toWalletId,
-                category: formVal.type === 'TRANSFER' ? 'โอนเงิน' : formVal.category,
-                description: formVal.description
-            });
 
-            this.form.patchValue({
-                amount: null,
-                description: ''
-            });
-            this.formSubmitted.emit();
-            alert('บันทึกเรียบร้อย!');
+            try {
+                await this.dataService.addTransaction({
+                    amount: formVal.amount,
+                    date: new Date(formVal.date).toISOString(),
+                    type: formVal.type,
+                    walletId: formVal.walletId,
+                    toWalletId: formVal.toWalletId,
+                    categoryId: formVal.type === 'TRANSFER' ? '' : formVal.categoryId,
+                    description: formVal.description
+                });
+
+                this.form.patchValue({
+                    amount: null,
+                    description: ''
+                });
+                this.formSubmitted.emit();
+                alert('บันทึกเรียบร้อย!');
+            } catch (error) {
+                console.error('Failed to create transaction:', error);
+                alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+            }
         }
     }
 }

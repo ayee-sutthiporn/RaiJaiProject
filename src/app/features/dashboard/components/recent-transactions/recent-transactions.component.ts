@@ -18,10 +18,10 @@ import { Transaction } from '../../../../core/models/transaction.interface';
           <div class="flex items-center justify-between p-3 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors group cursor-pointer">
             <div class="flex items-center gap-4">
               <div [class]="'w-10 h-10 rounded-full flex items-center justify-center ' + getCategoryColor()">
-                <span class="text-lg">{{ getCategoryEmoji(transaction.category) }}</span>
+                <span class="text-lg">{{ getCategoryEmoji(transaction.category?.name || '') }}</span>
               </div>
               <div>
-                <p class="font-medium text-zinc-900 dark:text-white">{{ transaction.description || transaction.category }}</p>
+                <p class="font-medium text-zinc-900 dark:text-white">{{ transaction.description || transaction.category?.name }}</p>
                 <p class="text-xs text-zinc-500">{{ transaction.date | date:'d MMM, HH:mm' }} • {{ transaction.walletId | slice:0:2 }}..</p>
               </div>
             </div>

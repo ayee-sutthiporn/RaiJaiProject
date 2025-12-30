@@ -1,14 +1,13 @@
 import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MockDataService } from '../../core/services/mock-data.service';
+import { DataService } from '../../core/services/data.service';
 import { Wallet, WalletType } from '../../core/models/wallet.interface';
-import { HistoryListComponent } from '../../shared/components/history-list/history-list.component';
 
 @Component({
   selector: 'app-wallets',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, DecimalPipe, HistoryListComponent],
+  imports: [CommonModule, ReactiveFormsModule, DecimalPipe],
   template: `
     <div class="space-y-6 animate-in fade-in zoom-in-95 duration-300">
       <header class="flex justify-between items-center">
@@ -44,9 +43,7 @@ import { HistoryListComponent } from '../../shared/components/history-list/histo
                            <button (click)="openTransactionsModal(wallet.id)" class="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors text-white" title="รายการเดินบัญชี">
                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>
                            </button>
-                           <button (click)="openHistoryModal(wallet)" class="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors text-white" title="ประวัติการแก้ไข">
-                               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/></svg>
-                           </button>
+
                            <button (click)="openModal(wallet)" class="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors text-white" title="แก้ไข">
                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
                            </button>
@@ -110,24 +107,7 @@ import { HistoryListComponent } from '../../shared/components/history-list/histo
           </div>
       }
       
-      <!-- History Modal -->
-      @if (showHistoryModal()) {
-          <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-              <div class="bg-white dark:bg-zinc-900 rounded-2xl p-6 w-full max-w-md shadow-2xl border border-zinc-200 dark:border-zinc-700 max-h-[80vh] overflow-y-auto">
-                  <div class="flex justify-between items-center mb-4">
-                      <h2 class="text-xl font-bold text-zinc-900 dark:text-white">ประวัติการแก้ไข</h2>
-                      <button (click)="closeHistoryModal()" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 18 18"/></svg>
-                      </button>
-                  </div>
-                  <div class="mb-4">
-                      <p class="text-sm text-zinc-500">รายการ: <span class="font-medium text-zinc-900 dark:text-white">{{ selectedWalletForHistory()?.name }}</span></p>
-                  </div>
-                  
-                  <app-history-list [history]="selectedWalletForHistory()?.history || []"></app-history-list>
-            </div>
-        </div>
-    }
+
 
     <!-- Transactions Modal -->
     @if (showTransactionsModal()) {
@@ -170,14 +150,10 @@ import { HistoryListComponent } from '../../shared/components/history-list/histo
   `
 })
 export class WalletsComponent {
-  dataService = inject(MockDataService);
+  dataService = inject(DataService);
   fb = inject(FormBuilder);
-
   showModal = signal(false);
   editingId = signal<string | null>(null);
-
-  showHistoryModal = signal(false);
-  selectedWalletForHistory = signal<Wallet | null>(null);
 
   showTransactionsModal = signal(false);
   selectedWalletIdForTransactions = signal<string | null>(null);
@@ -244,45 +220,45 @@ export class WalletsComponent {
     return 'เลือกสี';
   }
 
-  onSubmit() {
+  async onSubmit() {
     if (this.form.valid) {
       const val = this.form.getRawValue();
 
-      if (this.editingId()) {
-        this.dataService.updateWallet(this.editingId()!, {
-          name: val.name!,
-          type: val.type!,
-          balance: val.balance!,
-          color: val.color!
-        });
-      } else {
-        this.dataService.addWallet({
-          name: val.name!,
-          type: val.type!,
-          balance: val.balance!,
-          currency: 'THB',
-          color: val.color!,
-          ownerId: this.dataService.user().id
-        });
+      try {
+        if (this.editingId()) {
+          await this.dataService.updateWallet(this.editingId()!, {
+            name: val.name!,
+            type: val.type!,
+            balance: val.balance!,
+            color: val.color!
+          });
+        } else {
+          await this.dataService.addWallet({
+            name: val.name!,
+            type: val.type!,
+            balance: val.balance!,
+            currency: 'THB',
+            color: val.color!,
+            ownerId: this.dataService.user()?.id
+          });
+        }
+        this.closeModal();
+      } catch (error) {
+        console.error('Failed to save wallet:', error);
+        alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่อีกครั้ง');
       }
-      this.closeModal();
     }
   }
 
-  deleteWallet(id: string) {
+  async deleteWallet(id: string) {
     if (confirm('คุณแน่ใจว่าต้องการลบกระเป๋านี้?')) {
-      this.dataService.deleteWallet(id);
+      try {
+        await this.dataService.deleteWallet(id);
+      } catch (error) {
+        console.error('Failed to delete wallet:', error);
+        alert('เกิดข้อผิดพลาดในการลบข้อมูล');
+      }
     }
-  }
-
-  openHistoryModal(wallet: Wallet) {
-    this.selectedWalletForHistory.set(wallet);
-    this.showHistoryModal.set(true);
-  }
-
-  closeHistoryModal() {
-    this.showHistoryModal.set(false);
-    this.selectedWalletForHistory.set(null);
   }
 
   openTransactionsModal(walletId: string) {

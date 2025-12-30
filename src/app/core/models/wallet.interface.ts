@@ -1,4 +1,4 @@
-import { HistoryLog } from './history-log.interface';
+import { User } from './user.interface';
 
 export type WalletType = 'CASH' | 'BANK' | 'CREDIT_CARD';
 
@@ -8,9 +8,8 @@ export interface Wallet {
     type: WalletType;
     balance: number;
     currency: string;
-    icon?: string;
     color?: string; // Hex code or Tailwind class
     ownerId: string;
-    sharedWithIds?: string[]; // For shared ledger
-    history?: HistoryLog[];
+    owner?: User; // Populated in responses
+    createdAt: string;
 }

@@ -1,7 +1,8 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MockDataService } from '../../core/services/mock-data.service';
+import { DataService } from '../../core/services/data.service';
+import { Category } from '../../core/models/category.interface';
 
 @Component({
     selector: 'app-categories',
@@ -78,7 +79,7 @@ import { MockDataService } from '../../core/services/mock-data.service';
   `]
 })
 export class CategoriesComponent {
-    dataService = inject(MockDataService);
+    dataService = inject(DataService);
     fb = inject(FormBuilder);
 
     categoryForm = this.fb.group({
@@ -90,10 +91,7 @@ export class CategoriesComponent {
     editMode = signal(false);
     editingId = signal<string | null>(null);
 
-    // Import Category interface if needed, or define locally. Using 'any' for simplicity if interface not exported, 
-    // but better to import. Assuming dataService handles it.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    startEdit(cat: any) {
+    startEdit(cat: Category) {
         this.editMode.set(true);
         this.editingId.set(cat.id);
         this.categoryForm.patchValue({
@@ -109,32 +107,43 @@ export class CategoriesComponent {
         this.categoryForm.reset({ type: 'EXPENSE' });
     }
 
-    onAddCategory() {
+    async onAddCategory() {
         if (this.categoryForm.valid) {
             const val = this.categoryForm.value;
 
-            if (this.editMode() && this.editingId()) {
-                this.dataService.updateCategory(this.editingId()!, {
-                    name: val.name!,
-                    type: val.type as 'INCOME' | 'EXPENSE',
-                    icon: val.icon || '📝'
-                });
-                this.cancelEdit();
-            } else {
-                this.dataService.addCategory({
-                    name: val.name!,
-                    type: val.type as 'INCOME' | 'EXPENSE',
-                    icon: val.icon || '📝',
-                    color: 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
-                });
-                this.categoryForm.reset({ type: 'EXPENSE' });
+            try {
+                if (this.editMode() && this.editingId()) {
+                    await this.dataService.updateCategory(this.editingId()!, {
+                        name: val.name!,
+                        type: val.type as 'INCOME' | 'EXPENSE',
+                        icon: val.icon || '📝',
+                        color: '#3b82f6'
+                    });
+                    this.cancelEdit();
+                } else {
+                    await this.dataService.addCategory({
+                        name: val.name!,
+                        type: val.type as 'INCOME' | 'EXPENSE',
+                        icon: val.icon || '📝',
+                        color: '#3b82f6'
+                    });
+                    this.categoryForm.reset({ type: 'EXPENSE' });
+                }
+            } catch (error) {
+                console.error('Failed to save category:', error);
+                alert('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
             }
         }
     }
 
-    deleteCategory(id: string) {
+    async deleteCategory(id: string) {
         if (confirm('ยืนยันลบหมวดหมู่นี้? ประวัติการทำรายการเก่าๆ อาจได้รับผลกระทบ')) {
-            this.dataService.deleteCategory(id);
+            try {
+                await this.dataService.deleteCategory(id);
+            } catch (error) {
+                console.error('Failed to delete category:', error);
+                alert('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
+            }
         }
     }
 }

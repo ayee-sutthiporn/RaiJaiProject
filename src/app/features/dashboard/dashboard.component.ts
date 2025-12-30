@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
-import { MockDataService } from '../../core/services/mock-data.service';
+import { DataService } from '../../core/services/data.service';
 import { SummaryCardComponent } from './components/summary-card/summary-card.component';
 import { RecentTransactionsComponent } from './components/recent-transactions/recent-transactions.component';
 import { ExpenseDonutChartComponent } from './components/expense-donut-chart/expense-donut-chart.component';
@@ -14,7 +14,7 @@ import { ExpenseDonutChartComponent } from './components/expense-donut-chart/exp
       <header class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
           <h1 class="text-2xl font-bold text-zinc-900 dark:text-white tracking-tight">ภาพรวมกระเป๋าเงิน</h1>
-          <p class="text-zinc-500 dark:text-zinc-400">ยินดีต้อนรับกลับ, {{ dataService.user().name }}</p>
+          <p class="text-zinc-500 dark:text-zinc-400">ยินดีต้อนรับกลับ, {{ dataService.user()?.name || 'ผู้ใช้' }}</p>
         </div>
         <div class="md:text-right bg-white dark:bg-zinc-800/50 p-4 rounded-xl border border-zinc-100 dark:border-zinc-700 shadow-sm w-full md:w-auto">
             <p class="text-xs text-zinc-400">ทรัพย์สินสุทธิ (Net Worth)</p>
@@ -87,5 +87,5 @@ import { ExpenseDonutChartComponent } from './components/expense-donut-chart/exp
   `
 })
 export class DashboardComponent {
-  dataService = inject(MockDataService);
+  dataService = inject(DataService);
 }

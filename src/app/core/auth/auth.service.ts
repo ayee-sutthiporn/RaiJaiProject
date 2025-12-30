@@ -20,6 +20,10 @@ export class AuthService {
         return this.oauthService.hasValidAccessToken();
     }
 
+    hasValidAccessToken(): boolean {
+        return this.oauthService.hasValidAccessToken();
+    }
+
     async login(targetUrl?: string): Promise<void> {
         this.oauthService.initLoginFlow(targetUrl || undefined);
     }
@@ -29,6 +33,10 @@ export class AuthService {
     }
 
     getToken(): string {
+        return this.oauthService.getAccessToken();
+    }
+
+    getAccessToken(): string {
         return this.oauthService.getAccessToken();
     }
 

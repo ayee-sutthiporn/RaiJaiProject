@@ -1,11 +1,13 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideRouter } from '@angular/router';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideOAuthClient } from 'angular-oauth2-oidc';
 
 import { routes } from './app.routes';
 import { AuthService } from './core/auth/auth.service';
 import { APP_INITIALIZER } from '@angular/core';
+import { authInterceptor } from './core/interceptors/auth.interceptor';
+import { errorInterceptor } from './core/interceptors/error.interceptor';
 
 /**
  * เราเปลี่ยนให้ initService ทำงานแบบ Non-blocking (ไม่ต้อง await)
@@ -23,7 +25,7 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
-    provideHttpClient(),
+    provideHttpClient(withInterceptors([authInterceptor, errorInterceptor])),
     provideOAuthClient(),
     {
       provide: APP_INITIALIZER,

@@ -1,4 +1,4 @@
-import { HistoryLog } from './history-log.interface';
+import { Wallet } from './wallet.interface';
 
 export type DebtType = 'LENT' | 'BORROWED';
 
@@ -21,7 +21,8 @@ export interface Debt {
     personName: string; // The counterparty
     isInstallment: boolean;
     installmentPlan?: InstallmentPlan;
-    autoDeduct: boolean; // Simulation toggle
-    walletId: string; // Related wallet for deduction/receiving
-    history?: HistoryLog[];
+    autoDeduct: boolean;
+    walletId: string;
+    wallet?: Wallet; // Populated in responses
+    createdAt: string;
 }
