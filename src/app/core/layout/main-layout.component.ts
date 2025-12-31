@@ -4,6 +4,8 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { ThemeService } from '../services/theme.service';
 import { NotificationDropdownComponent } from '../components/notification-dropdown.component';
 import { NotificationService } from '../services/notification.service';
+import { DataService } from '../services/data.service';
+import { computed } from '@angular/core';
 
 
 @Component({
@@ -55,11 +57,11 @@ import { NotificationService } from '../services/notification.service';
              <!-- User Profile (Desktop Sidebar) -->
              <div class="flex items-center gap-3 p-3 bg-zinc-50 dark:bg-zinc-700/30 rounded-xl border border-zinc-100 dark:border-zinc-700">
                  <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold overflow-hidden shadow-sm">
-                     <img src="https://i.pravatar.cc/150?u=u1" alt="Profile" class="w-full h-full object-cover">
+                     <span class="text-sm select-none">{{ userInitials() }}</span>
                  </div>
                  <div class="overflow-hidden">
-                     <p class="text-sm font-bold text-zinc-900 dark:text-white truncate">สุทธิพร</p>
-                     <p class="text-xs text-zinc-500 truncate">แพ็คเกจโปร</p>
+                     <p class="text-sm font-bold text-zinc-900 dark:text-white truncate">{{ dataService.user()?.name }}</p>
+                     <p class="text-xs text-zinc-500 truncate">{{ dataService.user()?.email }}</p>
                  </div>
              </div>
         </div>
@@ -71,7 +73,7 @@ import { NotificationService } from '../services/notification.service';
         <!-- Desktop Header -->
         <header class="hidden md:flex items-center justify-between px-8 py-5 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-30">
             <div>
-                <h2 class="text-xl font-bold text-zinc-800 dark:text-white">ยินดีต้อนรับกลับ, สุทธิพร 👋</h2>
+                <h2 class="text-xl font-bold text-zinc-800 dark:text-white">ยินดีต้อนรับกลับ, {{ dataService.user()?.firstName || dataService.user()?.name }} 👋</h2>
                 <p class="text-sm text-zinc-500 dark:text-zinc-400">จัดการการเงินของคุณได้ง่ายๆ วันนี้</p>
             </div>
             <div class="flex items-center gap-4">
@@ -157,11 +159,13 @@ import { NotificationService } from '../services/notification.service';
 
                 <!-- Profile Section -->
                 <div class="p-8 pb-6 flex flex-col items-center text-center mt-6">
-                    <div class="w-20 h-20 rounded-full p-1 bg-gradient-to-tr from-emerald-400 to-cyan-400 shadow-lg mb-4">
-                         <img src="https://i.pravatar.cc/150?u=u1" alt="Profile" class="w-full h-full rounded-full object-cover border-4 border-white dark:border-zinc-900">
+                    <div class="w-20 h-20 rounded-full p-1 bg-gradient-to-tr from-emerald-400 to-cyan-400 shadow-lg mb-4 flex items-center justify-center">
+                         <div class="w-full h-full rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border-4 border-white dark:border-zinc-900">
+                             <span class="text-3xl font-bold text-white select-none">{{ userInitials() }}</span>
+                         </div>
                     </div>
-                    <h2 class="text-xl font-bold text-zinc-900 dark:text-white">สุทธิพร</h2>
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">sutthiporn&#64;example.com</p>
+                    <h2 class="text-xl font-bold text-zinc-900 dark:text-white">{{ dataService.user()?.name }}</h2>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ dataService.user()?.email }}</p>
                 </div>
 
                 <!-- Divider -->
@@ -222,6 +226,26 @@ import { NotificationService } from '../services/notification.service';
 export class MainLayoutComponent {
     themeService = inject(ThemeService);
     notificationService = inject(NotificationService);
+    dataService = inject(DataService);
+
+    userInitials = computed(() => {
+        const u = this.dataService.user();
+        if (!u) return '';
+        // Priority: FirstName FirstChar + LastName FirstChar
+        if (u.firstName && u.lastName) {
+            return (u.firstName.charAt(0) + u.lastName.charAt(0)).toUpperCase();
+        }
+        // Fallback: Name FirstChar (if name is "First Last")
+        if (u.name) {
+            const parts = u.name.split(' ');
+            if (parts.length >= 2) {
+                return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+            }
+            return u.name.charAt(0).toUpperCase();
+        }
+        // Fallback: Username
+        return u.username?.charAt(0).toUpperCase() || '?';
+    });
 
     isMobileMenuOpen = signal(false);
     showNotifications = signal(false);
