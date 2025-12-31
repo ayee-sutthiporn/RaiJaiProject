@@ -128,6 +128,10 @@ export class DataService {
     // ===== Category Actions =====
     async addCategory(category: Partial<Category>) {
         try {
+            // Inject CreatedBy ID if missing
+            if (!category.createdById) {
+                category.createdById = this.user()?.id;
+            }
             const newCategory = await this.categoryApi.createCategory(category).toPromise();
             if (newCategory) {
                 this.categories.update(list => [...list, newCategory]);
@@ -163,6 +167,10 @@ export class DataService {
     // ===== Wallet Actions =====
     async addWallet(wallet: Partial<Wallet>) {
         try {
+            // Inject Owner ID if missing
+            if (!wallet.ownerId) {
+                wallet.ownerId = this.user()?.id;
+            }
             const newWallet = await this.walletApi.createWallet(wallet).toPromise();
             if (newWallet) {
                 this.wallets.update(list => [...list, newWallet]);
@@ -198,6 +206,10 @@ export class DataService {
     // ===== Transaction Actions =====
     async addTransaction(transaction: Partial<Transaction>) {
         try {
+            // Inject CreatedBy ID if missing
+            if (!transaction.createdById) {
+                transaction.createdById = this.user()?.id;
+            }
             const newTx = await this.transactionApi.createTransaction(transaction).toPromise();
             if (newTx) {
                 this.transactions.update(list => [newTx, ...list]);
@@ -239,6 +251,10 @@ export class DataService {
     // ===== Debt Actions =====
     async addDebt(debt: Partial<Debt>) {
         try {
+            // Inject CreatedBy ID if missing
+            if (!debt.createdById) {
+                debt.createdById = this.user()?.id;
+            }
             const newDebt = await this.debtApi.createDebt(debt).toPromise();
             if (newDebt) {
                 this.debts.update(list => [...list, newDebt]);

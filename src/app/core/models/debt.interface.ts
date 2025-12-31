@@ -24,5 +24,6 @@ export interface Debt {
     autoDeduct: boolean;
     walletId: string;
     wallet?: Wallet; // Populated in responses
+    createdById?: string;
     createdAt: string;
 }
