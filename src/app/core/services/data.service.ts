@@ -1,24 +1,35 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
-import { UserApiService } from './api/user-api.service';
+
 import { CategoryApiService } from './api/category-api.service';
 import { WalletApiService } from './api/wallet-api.service';
 import { TransactionApiService } from './api/transaction-api.service';
 import { DebtApiService } from './api/debt-api.service';
+import { AuthService } from '../auth/auth.service';
 import { User } from '../models/user.interface';
 import { Transaction } from '../models/transaction.interface';
 import { Wallet } from '../models/wallet.interface';
 import { Debt } from '../models/debt.interface';
 import { Category } from '../models/category.interface';
 
+interface KeycloakProfile {
+    sub: string;
+    preferred_username: string;
+    email: string;
+    name?: string;
+    given_name?: string;
+    family_name?: string;
+}
+
 @Injectable({
     providedIn: 'root'
 })
 export class DataService {
-    private userApi = inject(UserApiService);
+
     private categoryApi = inject(CategoryApiService);
     private walletApi = inject(WalletApiService);
     private transactionApi = inject(TransactionApiService);
     private debtApi = inject(DebtApiService);
+    private authService = inject(AuthService);
 
     // Signals for State
     user = signal<User | null>(null);
@@ -81,8 +92,23 @@ export class DataService {
 
     async loadUser() {
         try {
-            const user = await this.userApi.getCurrentUser().toPromise();
-            this.user.set(user || null);
+            const claims = this.authService.userProfile() as unknown as KeycloakProfile;
+            if (claims) {
+                const user: User = {
+                    id: claims.sub, // Keycloak User ID
+                    username: claims.preferred_username,
+                    email: claims.email,
+                    name: claims.name || `${claims.given_name} ${claims.family_name}`,
+                    firstName: claims.given_name,
+                    lastName: claims.family_name
+                };
+                this.user.set(user);
+                console.log('[DataService] User loaded from Keycloak:', user);
+            } else {
+                // Fallback if no claims (e.g. not logged in yet)
+                // But normally AuthService should handle login before this is called
+                console.warn('[DataService] No user claims found');
+            }
         } catch (error) {
             console.error('Error loading user:', error);
         }
