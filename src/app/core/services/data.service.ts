@@ -128,10 +128,7 @@ export class DataService {
     // ===== Category Actions =====
     async addCategory(category: Partial<Category>) {
         try {
-            // Inject CreatedBy ID if missing
-            if (!category.createdById) {
-                category.createdById = this.user()?.id;
-            }
+
             const newCategory = await this.categoryApi.createCategory(category).toPromise();
             if (newCategory) {
                 this.categories.update(list => [...list, newCategory]);
@@ -251,10 +248,7 @@ export class DataService {
     // ===== Debt Actions =====
     async addDebt(debt: Partial<Debt>) {
         try {
-            // Inject CreatedBy ID if missing
-            if (!debt.createdById) {
-                debt.createdById = this.user()?.id;
-            }
+
             const newDebt = await this.debtApi.createDebt(debt).toPromise();
             if (newDebt) {
                 this.debts.update(list => [...list, newDebt]);

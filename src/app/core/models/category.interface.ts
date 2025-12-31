@@ -6,6 +6,5 @@ export interface Category {
     type: CategoryType;
     color: string;
     icon?: string;
-    createdById?: string;
     createdAt: string;
 }
