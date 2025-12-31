@@ -1,13 +1,13 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DataService } from '../../core/services/data.service';
 
 @Component({
-  selector: 'app-settings',
-  standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
-  template: `
+    selector: 'app-settings',
+    standalone: true,
+    imports: [CommonModule, ReactiveFormsModule],
+    template: `
     <div class="space-y-6 animate-in fade-in zoom-in-95 duration-300">
       <header>
         <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">ตั้งค่า</h1>
@@ -21,8 +21,8 @@ import { DataService } from '../../core/services/data.service';
                   <h3 class="font-bold text-lg mb-6 text-zinc-900 dark:text-white">ข้อมูลส่วนตัว</h3>
                   
                   <div class="flex items-center gap-6 mb-8">
-                      <div class="w-20 h-20 rounded-full bg-indigo-500 flex items-center justify-center text-white text-2xl font-bold ring-4 ring-white dark:ring-zinc-700 overflow-hidden">
-                          <img [src]="dataService.user()?.avatarUrl" alt="User Avatar" class="w-full h-full object-cover">
+                      <div class="w-20 h-20 rounded-full bg-indigo-500 flex items-center justify-center text-white text-2xl font-bold ring-4 ring-white dark:ring-zinc-700 overflow-hidden select-none">
+                          {{ userInitials() }}
                       </div>
                       <div>
                           <button class="px-4 py-2 bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 rounded-lg text-sm font-medium hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors">
@@ -78,19 +78,35 @@ import { DataService } from '../../core/services/data.service';
   `
 })
 export class SettingsComponent {
-  dataService = inject(DataService);
-  fb = inject(FormBuilder);
+    dataService = inject(DataService);
+    fb = inject(FormBuilder);
 
-  form = this.fb.group({
-    name: [this.dataService.user()?.name || '', Validators.required],
-    email: [this.dataService.user()?.email || '', [Validators.required, Validators.email]]
-  });
+    userInitials = computed(() => {
+        const u = this.dataService.user();
+        if (!u) return '';
+        if (u.firstName && u.lastName) {
+            return (u.firstName.charAt(0) + u.lastName.charAt(0)).toUpperCase();
+        }
+        if (u.name) {
+            const parts = u.name.split(' ');
+            if (parts.length >= 2) {
+                return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+            }
+            return u.name.charAt(0).toUpperCase();
+        }
+        return u.username?.charAt(0).toUpperCase() || '?';
+    });
 
-  onSubmit() {
-    if (this.form.valid) {
-      // API update not implemented yet
-      alert('บันทึกข้อมูลเรียบร้อย (Mock)!');
-      this.form.markAsPristine();
+    form = this.fb.group({
+        name: [this.dataService.user()?.name || '', Validators.required],
+        email: [this.dataService.user()?.email || '', [Validators.required, Validators.email]]
+    });
+
+    onSubmit() {
+        if (this.form.valid) {
+            // API update not implemented yet
+            alert('บันทึกข้อมูลเรียบร้อย (Mock)!');
+            this.form.markAsPristine();
+        }
     }
-  }
 }
