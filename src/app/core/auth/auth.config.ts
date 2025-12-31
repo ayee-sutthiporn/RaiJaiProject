@@ -11,5 +11,5 @@ export const authConfig: AuthConfig = {
     postLogoutRedirectUri: window.location.origin,
     useSilentRefresh: false, // อันเดิมที่เราปิดไป
     // เพิ่มบรรทัดนี้: เปิดการเช็คสถานะ Session
-    sessionChecksEnabled: true,
+    sessionChecksEnabled: false,
 };
