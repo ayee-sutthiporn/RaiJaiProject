@@ -61,6 +61,11 @@ export class AuthService {
             if (event.type === 'logout') {
                 this.userProfile.set(null);
             }
+
+            if (event.type === 'token_refresh_error') {
+                console.warn('[AuthService] Token refresh failed. Logging out...');
+                this.logout();
+            }
         });
     }
 
