@@ -4,8 +4,8 @@ import { authGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
     {
-        path: 'callback',
-        loadComponent: () => import('./core/auth/callback.component').then(m => m.CallbackComponent)
+        path: 'login',
+        loadComponent: () => import('./features/auth/login/login.component').then(m => m.LoginComponent)
     },
     {
         path: '',

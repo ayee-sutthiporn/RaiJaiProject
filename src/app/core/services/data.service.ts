@@ -11,15 +11,6 @@ import { Wallet } from '../models/wallet.interface';
 import { Debt } from '../models/debt.interface';
 import { Category } from '../models/category.interface';
 
-interface KeycloakProfile {
-    sub: string;
-    preferred_username: string;
-    email: string;
-    name?: string;
-    given_name?: string;
-    family_name?: string;
-}
-
 @Injectable({
     providedIn: 'root'
 })
@@ -91,26 +82,12 @@ export class DataService {
     }
 
     async loadUser() {
-        try {
-            const claims = this.authService.userProfile() as unknown as KeycloakProfile;
-            if (claims) {
-                const user: User = {
-                    id: claims.sub, // Keycloak User ID
-                    username: claims.preferred_username,
-                    email: claims.email,
-                    name: claims.name || `${claims.given_name} ${claims.family_name}`,
-                    firstName: claims.given_name,
-                    lastName: claims.family_name
-                };
-                this.user.set(user);
-                console.log('[DataService] User loaded from Keycloak:', user);
-            } else {
-                // Fallback if no claims (e.g. not logged in yet)
-                // But normally AuthService should handle login before this is called
-                console.warn('[DataService] No user claims found');
-            }
-        } catch (error) {
-            console.error('Error loading user:', error);
+        // Sync user from AuthService
+        const user = this.authService.user();
+        if (user) {
+            this.user.set(user);
+        } else {
+            console.warn('[DataService] No user found in AuthService');
         }
     }
 

@@ -1,26 +1,15 @@
 import { inject } from '@angular/core';
-import { CanActivateFn } from '@angular/router';
+import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
 
-export const authGuard: CanActivateFn = async (_route, state) => {
+export const authGuard: CanActivateFn = (route, state) => {
     const authService = inject(AuthService);
+    const router = inject(Router);
 
-    // Wait for the auth initialization to complete (loading screen handling)
-    await authService.ensureInitialized();
-
-
-    if (authService.isLoggedIn) {
+    if (authService.isLoggedIn()) {
         return true;
     }
 
-    // Check if we already tried to login (have a code) but still aren't logged in
-    if (window.location.search.includes('code=')) {
-        console.error('Login failed: Code present but not authenticated. Stopping loop.');
-        // Optional: Redirect to an error page or clear parameters
-        return false;
-    }
-
-    await authService.login(state.url);
-
-    return false;
+    // Redirect to login page
+    return router.createUrlTree(['/login'], { queryParams: { returnUrl: state.url } });
 };
