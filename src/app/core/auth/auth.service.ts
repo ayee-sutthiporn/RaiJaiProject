@@ -30,6 +30,15 @@ export class AuthService {
     user = this._user.asReadonly();
     token = this._token.asReadonly();
     isLoggedIn = computed(() => !!this._token());
+    isAuthChecking = signal(false);
+
+    /**
+     * Checks if the user has a valid access token.
+     * Currently alias for isLoggedIn status.
+     */
+    hasValidAccessToken() {
+        return this.isLoggedIn();
+    }
 
     // API URL
     private apiUrl = `${environment.apiBaseUrl}/auth`;
