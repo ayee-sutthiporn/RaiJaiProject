@@ -1,9 +1,7 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { tap, Observable } from 'rxjs';
+import { tap, Observable, of, delay } from 'rxjs';
 import { User } from '../models/user.interface';
-import { environment } from '../../../environments/environment';
 
 export interface LoginRequest {
     username: string;
@@ -19,7 +17,6 @@ export interface AuthResponse {
     providedIn: 'root'
 })
 export class AuthService {
-    private http = inject(HttpClient);
     private router = inject(Router);
 
     // Private signals
@@ -40,15 +37,24 @@ export class AuthService {
         return this.isLoggedIn();
     }
 
-    // API URL
-    private apiUrl = `${environment.apiBaseUrl}/auth`;
-
-    constructor() {
-        // Optional: Validate token on startup or decode JWT to check expiry
-    }
 
     login(credentials: LoginRequest): Observable<AuthResponse> {
-        return this.http.post<AuthResponse>(`${this.apiUrl}/login`, credentials).pipe(
+        // MOCK LOGIN
+        const mockUser: User = {
+            id: '1',
+            username: credentials.username,
+            name: 'Demo User',
+            email: 'demo@raijai.com',
+            firstName: 'Demo',
+            lastName: 'User'
+        };
+        const mockResponse: AuthResponse = {
+            token: 'mock-jwt-token-' + Math.random(),
+            user: mockUser
+        };
+
+        return of(mockResponse).pipe(
+            delay(800), // Simulate network delay
             tap(response => {
                 this.setSession(response);
             })
@@ -85,7 +91,4 @@ export class AuthService {
         }
         return null;
     }
-
-    // Optional: Add a method to load user profile if not returned by login
-    // loadProfile() { ... }
 }

@@ -1,13 +1,15 @@
 import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { DataService } from '../../core/services/data.service';
+import { MockDataService } from '../../core/services/mock/mock-data.service';
 import { Wallet, WalletType } from '../../core/models/wallet.interface';
+import { ToastService } from '../../core/services/toast.service';
+import { ConfirmModalComponent } from '../../shared/components/confirm-modal/confirm-modal.component';
 
 @Component({
   selector: 'app-wallets',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, DecimalPipe],
+  imports: [CommonModule, ReactiveFormsModule, DecimalPipe, ConfirmModalComponent],
   template: `
     <div class="space-y-6 animate-in fade-in zoom-in-95 duration-300">
       <header class="flex justify-between items-center">
@@ -23,7 +25,7 @@ import { Wallet, WalletType } from '../../core/models/wallet.interface';
       
       <!-- Wallet Grid -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        @for (wallet of dataService.wallets(); track wallet.id) {
+        @for (wallet of filteredWallets(); track wallet.id) {
             <div class="bg-white dark:bg-zinc-800 rounded-2xl p-6 border border-zinc-200 dark:border-zinc-700 shadow-sm relative group overflow-hidden">
                  <!-- Background Decoration -->
                  <div [class]="'absolute top-0 right-0 w-32 h-32 blur-3xl opacity-10 rounded-full -mr-10 -mt-10 ' + wallet.color"></div>
@@ -62,14 +64,24 @@ import { Wallet, WalletType } from '../../core/models/wallet.interface';
                      </p>
                      <span class="text-xs text-zinc-400 font-medium">THB</span>
                  </div>
+                 
+                 <div class="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-700/50 flex items-center gap-2">
+                    <span class="bg-zinc-100 dark:bg-zinc-700/50 text-zinc-600 dark:text-zinc-400 text-[10px] px-2 py-1 rounded-full flex items-center gap-1 font-medium">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        {{ getOwnerName(wallet.ownerId) }}
+                    </span>
+                 </div>
             </div>
         }
       </div>
       
       <!-- Add Modal -->
       @if (showModal()) {
-          <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-              <div class="bg-white dark:bg-zinc-900 rounded-2xl p-6 w-full max-w-md shadow-2xl border border-zinc-200 dark:border-zinc-700">
+          <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300 ease-out">
+              <div class="bg-white dark:bg-zinc-900 rounded-2xl p-6 w-full max-w-md shadow-2xl border border-zinc-200 dark:border-zinc-700 relative animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 ease-out">
+                  <button (click)="closeModal()" class="absolute top-5 right-5 z-20 text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors">
+                       <span class="material-icons-outlined text-2xl">close</span>
+                  </button>
                   <h2 class="text-xl font-bold mb-4 text-zinc-900 dark:text-white">{{ editingId() ? 'แก้ไขกระเป๋า' : 'เพิ่มกระเป๋าใหม่' }}</h2>
                   
                   <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4">
@@ -107,17 +119,15 @@ import { Wallet, WalletType } from '../../core/models/wallet.interface';
           </div>
       }
       
-
-
-    <!-- Transactions Modal -->
+      <!-- Transactions Modal -->
     @if (showTransactionsModal()) {
-        <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-            <div class="bg-white dark:bg-zinc-900 rounded-2xl p-6 w-full max-w-lg shadow-2xl border border-zinc-200 dark:border-zinc-700 max-h-[80vh] overflow-y-auto">
+        <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300 ease-out">
+            <div class="bg-white dark:bg-zinc-900 rounded-2xl p-6 w-full max-w-lg shadow-2xl border border-zinc-200 dark:border-zinc-700 max-h-[80vh] overflow-y-auto relative animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 ease-out">
+                 <button (click)="closeTransactionsModal()" class="absolute top-5 right-5 z-20 text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors">
+                       <span class="material-icons-outlined text-2xl">close</span>
+                  </button>
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-xl font-bold text-zinc-900 dark:text-white">รายการเดินบัญชี</h2>
-                    <button (click)="closeTransactionsModal()" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 18 18"/></svg>
-                    </button>
                 </div>
                 
                 <div class="space-y-3">
@@ -132,7 +142,7 @@ import { Wallet, WalletType } from '../../core/models/wallet.interface';
                                 </div>
                                 <div>
                                     <p class="font-bold text-sm text-zinc-900 dark:text-white">{{ tx.description || tx.category }}</p>
-                                    <p class="text-xs text-zinc-500">{{ tx.date | date:'d MMM yyyy, HH:mm' }}</p>
+                                    <p class="text-xs text-zinc-500">{{ tx.date | date:'dd-MM-yyyy, HH:mm' }}</p>
                                 </div>
                             </div>
                             <span [class]="'font-bold ' + (tx.type === 'INCOME' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')">
@@ -146,17 +156,42 @@ import { Wallet, WalletType } from '../../core/models/wallet.interface';
             </div>
         </div>
     }
+
+    <!-- Confirm Modal -->
+    @if (confirmModalOpen()) {
+        <app-confirm-modal
+            [title]="'ยืนยันการลบกระเป๋าเงิน'"
+            [message]="'คุณต้องการลบกระเป๋าเงินใบนี้ใช่หรือไม่? (ประวัติธุรกรรมที่เกี่ยวข้องทั้งหมดจะถูกลบไปด้วย) การกระทำนี้ไม่สามารถย้อนกลับได้'"
+            (confirmed)="confirmDelete()"
+            (cancelled)="confirmModalOpen.set(false)">
+        </app-confirm-modal>
+    }
   </div>
   `
 })
 export class WalletsComponent {
-  dataService = inject(DataService);
+  dataService = inject(MockDataService);
+  toastService = inject(ToastService);
   fb = inject(FormBuilder);
   showModal = signal(false);
   editingId = signal<string | null>(null);
 
   showTransactionsModal = signal(false);
   selectedWalletIdForTransactions = signal<string | null>(null);
+
+  // Confirm Modal
+  confirmModalOpen = signal(false);
+  deleteId = signal<string | null>(null);
+
+  filteredWallets = computed(() => {
+    return this.dataService.wallets();
+  });
+
+  getOwnerName(ownerId?: string): string {
+    if (!ownerId) return 'Unknown';
+    const user = this.dataService.users().find(u => u.id === ownerId);
+    return user ? user.name : 'Unknown';
+  }
 
   selectedWalletTransactions = computed(() => {
     const walletId = this.selectedWalletIdForTransactions();
@@ -239,24 +274,49 @@ export class WalletsComponent {
             balance: val.balance!,
             currency: 'THB',
             color: val.color!,
-            ownerId: this.dataService.user()?.id
+            ownerId: this.dataService.currentUser()?.id
           });
         }
         this.closeModal();
+        this.toastService.show({
+          type: 'success',
+          title: 'สำเร็จ',
+          message: 'บันทึกข้อมูลกระเป๋าเงินเรียบร้อยแล้ว'
+        });
       } catch (error) {
         console.error('Failed to save wallet:', error);
-        alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่อีกครั้ง');
+        this.toastService.show({
+          type: 'error',
+          title: 'ผิดพลาด',
+          message: 'เกิดข้อผิดพลาดในการบันทึกข้อมูล'
+        });
       }
     }
   }
 
-  async deleteWallet(id: string) {
-    if (confirm('คุณแน่ใจว่าต้องการลบกระเป๋านี้?')) {
+  deleteWallet(id: string) {
+    this.deleteId.set(id);
+    this.confirmModalOpen.set(true);
+  }
+
+  async confirmDelete() {
+    if (this.deleteId()) {
       try {
-        await this.dataService.deleteWallet(id);
+        await this.dataService.deleteWallet(this.deleteId()!);
+        this.confirmModalOpen.set(false);
+        this.deleteId.set(null);
+        this.toastService.show({
+          type: 'success',
+          title: 'สำเร็จ',
+          message: 'ลบกระเป๋าเงินเรียบร้อยแล้ว'
+        });
       } catch (error) {
         console.error('Failed to delete wallet:', error);
-        alert('เกิดข้อผิดพลาดในการลบข้อมูล');
+        this.toastService.show({
+          type: 'error',
+          title: 'ผิดพลาด',
+          message: 'เกิดข้อผิดพลาดในการลบข้อมูล'
+        });
       }
     }
   }

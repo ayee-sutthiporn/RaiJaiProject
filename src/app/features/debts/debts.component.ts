@@ -1,14 +1,16 @@
 import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { DataService } from '../../core/services/data.service';
+import { MockDataService } from '../../core/services/mock/mock-data.service';
 import { NotificationService } from '../../core/services/notification.service';
+import { ToastService } from '../../core/services/toast.service';
 import { DebtType, InstallmentPlan, Debt } from '../../core/models/debt.interface';
+import { ConfirmModalComponent } from '../../shared/components/confirm-modal/confirm-modal.component';
 
 @Component({
     selector: 'app-debts',
     standalone: true,
-    imports: [CommonModule, ReactiveFormsModule, DecimalPipe],
+    imports: [CommonModule, ReactiveFormsModule, DecimalPipe, ConfirmModalComponent],
     template: `
     <div class="space-y-6 animate-in fade-in zoom-in-95 duration-300">
        <header class="flex justify-between items-center">
@@ -70,7 +72,6 @@ import { DebtType, InstallmentPlan, Debt } from '../../core/models/debt.interfac
                            <button (click)="deleteDebt(debt.id)" class="text-zinc-400 hover:text-red-500 transition-colors" title="ลบรายการ">
                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
                            </button>
-
                        </div>
                    </div>
 
@@ -130,8 +131,11 @@ import { DebtType, InstallmentPlan, Debt } from '../../core/models/debt.interfac
 
        <!-- Add Modal -->
       @if (showModal()) {
-          <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-              <div class="bg-white dark:bg-zinc-900 rounded-2xl p-6 w-full max-w-md shadow-2xl border border-zinc-200 dark:border-zinc-700 max-h-[90vh] overflow-y-auto">
+          <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300 ease-out">
+              <div class="bg-white dark:bg-zinc-900 rounded-2xl p-6 w-full max-w-md shadow-2xl border border-zinc-200 dark:border-zinc-700 max-h-[90vh] overflow-y-auto relative animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 ease-out">
+                  <button (click)="closeModal()" class="absolute top-5 right-5 z-20 text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors">
+                       <span class="material-icons-outlined text-2xl">close</span>
+                  </button>
                   <h2 class="text-xl font-bold mb-4 text-zinc-900 dark:text-white">{{ editingId() ? 'แก้ไขรายการหนี้สิน' : 'เพิ่มรายการหนี้สิน' }}</h2>
                   <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4">
                        <div>
@@ -178,7 +182,10 @@ import { DebtType, InstallmentPlan, Debt } from '../../core/models/debt.interfac
                                    </div>
                                    <div>
                                         <label for="startDate" class="block text-xs font-medium text-zinc-500 mb-1">วันที่เริ่มผ่อน</label>
-                                        <input id="startDate" type="date" formControlName="startDate" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none dark:text-white">
+                                        <div class="relative">
+                                            <input id="startDate" type="date" formControlName="startDate" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none dark:text-white relative z-10 appearance-none cursor-pointer">
+                                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none z-0 material-icons-outlined text-[18px]">calendar_today</span>
+                                        </div>
                                    </div>
                                     <div class="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
                                        <p class="text-xs text-blue-600 dark:text-blue-400">
@@ -200,8 +207,11 @@ import { DebtType, InstallmentPlan, Debt } from '../../core/models/debt.interfac
 
       <!-- Payment Modal -->
       @if (payModalOpen()) {
-           <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-              <div class="bg-white dark:bg-zinc-900 rounded-2xl p-6 w-full max-w-md shadow-2xl border border-zinc-200 dark:border-zinc-700">
+           <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300 ease-out">
+              <div class="bg-white dark:bg-zinc-900 rounded-2xl p-6 w-full max-w-md shadow-2xl border border-zinc-200 dark:border-zinc-700 relative animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 ease-out">
+                  <button (click)="closePayModal()" class="absolute top-5 right-5 z-20 text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors">
+                       <span class="material-icons-outlined text-2xl">close</span>
+                  </button>
                   <h2 class="text-xl font-bold mb-4 text-zinc-900 dark:text-white">ชำระหนี้ / ค่างวด</h2>
                   <p class="text-sm text-zinc-500 mb-6">รายการ: {{ selectedDebt()?.title }}</p>
 
@@ -214,7 +224,7 @@ import { DebtType, InstallmentPlan, Debt } from '../../core/models/debt.interfac
                       <div>
                           <label for="payWalletId" class="block text-xs font-medium text-zinc-500 mb-1">ชำระด้วยบัญชี/กระเป๋า</label>
                           <select id="payWalletId" formControlName="walletId" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none dark:text-white">
-                              @for (wallet of dataService.wallets(); track wallet.id) {
+                              @for (wallet of userWallets(); track wallet.id) {
                                   <option [value]="wallet.id">{{ wallet.name }} ({{ wallet.balance | number }})</option>
                               }
                           </select>
@@ -229,25 +239,45 @@ import { DebtType, InstallmentPlan, Debt } from '../../core/models/debt.interfac
            </div>
        }
        
+       <!-- Confirm Modal -->
+        @if (confirmModalOpen()) {
+            <app-confirm-modal
+                [title]="'ยืนยันการลบรายการ'"
+                [message]="'คุณต้องการลบรายการนี้ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้'"
+                (confirmed)="confirmDelete()"
+                (cancelled)="confirmModalOpen.set(false)">
+            </app-confirm-modal>
+        }
 
      </div>
   `
 })
 export class DebtsComponent {
-    dataService = inject(DataService);
+    dataService = inject(MockDataService);
     notificationService = inject(NotificationService);
+    toastService = inject(ToastService);
     fb = inject(FormBuilder);
     showModal = signal(false);
     editingId = signal<string | null>(null);
     activeTab = signal<'active' | 'completed'>('active');
 
+    // Confirm Modal
+    confirmModalOpen = signal(false);
+    deleteId = signal<string | null>(null);
+
     filteredDebts = computed(() => {
-        const debts = this.dataService.debts();
+        const userId = this.dataService.currentUser().id;
+        const debts = this.dataService.debts().filter(d => d.ownerId === userId);
         if (this.activeTab() === 'active') {
             return debts.filter(d => d.remainingAmount > 0);
         } else {
             return debts.filter(d => d.remainingAmount === 0);
         }
+    });
+
+    userWallets = computed(() => {
+        const userId = this.dataService.currentUser().id;
+        return this.dataService.wallets().filter(w => w.ownerId === userId);
     });
 
     form = this.fb.group({
@@ -388,7 +418,11 @@ export class DebtsComponent {
                 this.closeModal();
             } catch (error) {
                 console.error('Failed to save debt:', error);
-                alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+                this.toastService.show({
+                    type: 'error',
+                    title: 'ผิดพลาด',
+                    message: 'เกิดข้อผิดพลาดในการบันทึกข้อมูล'
+                });
             }
         }
     }
@@ -425,23 +459,38 @@ export class DebtsComponent {
                 });
             } catch (error) {
                 console.error('Failed to pay debt:', error);
-                alert('เกิดข้อผิดพลาดในการชำระเงิน');
+                this.toastService.show({
+                    type: 'error',
+                    title: 'ผิดพลาด',
+                    message: 'เกิดข้อผิดพลาดในการชำระเงิน'
+                });
             }
         }
     }
 
-    async deleteDebt(id: string) {
-        if (confirm('ลบรายการนี้?')) {
+    deleteDebt(id: string) {
+        this.deleteId.set(id);
+        this.confirmModalOpen.set(true);
+    }
+
+    async confirmDelete() {
+        if (this.deleteId()) {
             try {
-                await this.dataService.deleteDebt(id);
+                await this.dataService.deleteDebt(this.deleteId()!);
                 this.notificationService.add({
                     title: 'ลบรายการสำเร็จ',
                     message: 'ลบรายการหนี้สินเรียบร้อยแล้ว',
                     type: 'warning'
                 });
+                this.confirmModalOpen.set(false);
+                this.deleteId.set(null);
             } catch (error) {
                 console.error('Failed to delete debt:', error);
-                alert('เกิดข้อผิดพลาดในการลบรายการ');
+                this.toastService.show({
+                    type: 'error',
+                    title: 'ผิดพลาด',
+                    message: 'เกิดข้อผิดพลาดในการลบรายการ'
+                });
             }
         }
     }

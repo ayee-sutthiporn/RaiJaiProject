@@ -1,13 +1,15 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { DataService } from '../../core/services/data.service';
+import { MockDataService } from '../../core/services/mock/mock-data.service';
 import { Category } from '../../core/models/category.interface';
+import { ToastService } from '../../core/services/toast.service';
+import { ConfirmModalComponent } from '../../shared/components/confirm-modal/confirm-modal.component';
 
 @Component({
     selector: 'app-categories',
     standalone: true,
-    imports: [CommonModule, ReactiveFormsModule],
+    imports: [CommonModule, ReactiveFormsModule, ConfirmModalComponent],
     template: `
     <div class="space-y-6 animate-in fade-in zoom-in-95 duration-300">
       <header>
@@ -31,7 +33,7 @@ import { Category } from '../../core/models/category.interface';
                 </div>
                <div class="w-full md:w-24">
                    <label for="category-icon" class="block text-xs font-medium text-zinc-500 mb-1">ไอคอน</label>
-                   <input id="category-icon" type="text" formControlName="icon" placeholder="🍔" class="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none dark:text-white text-center">
+                   <input id="category-icon" type="text" formControlName="icon" placeholder="restaurant" class="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none dark:text-white text-center">
                </div>
                <button type="submit" [disabled]="categoryForm.invalid" [class]="'w-full md:w-auto px-4 py-2 text-white rounded-lg font-medium disabled:opacity-50 transition-colors shadow-lg ' + (editMode() ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/20' : 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20')">
                    {{ editMode() ? 'บันทึก' : 'เพิ่ม' }}
@@ -48,8 +50,8 @@ import { Category } from '../../core/models/category.interface';
                @for (cat of dataService.categories(); track cat.id) {
                    <div class="flex items-center justify-between p-3 rounded-xl border border-zinc-100 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors group">
                        <div class="flex items-center gap-3">
-                           <div class="w-10 h-10 flex items-center justify-center bg-zinc-100 dark:bg-zinc-700 rounded-full text-xl shadow-inner">
-                               {{ cat.icon || '📝' }}
+                           <div class="w-10 h-10 flex items-center justify-center bg-zinc-100 dark:bg-zinc-700 rounded-full text-xl shadow-inner text-zinc-600 dark:text-zinc-300">
+                               <span class="material-icons-outlined text-[24px]">{{ cat.icon || 'article' }}</span>
                            </div>
                            <div>
                                <p class="font-medium text-sm text-zinc-900 dark:text-white">{{ cat.name }}</p>
@@ -70,6 +72,16 @@ import { Category } from '../../core/models/category.interface';
                }
            </div>
       </div>
+
+       <!-- Confirm Modal -->
+        @if (confirmModalOpen()) {
+            <app-confirm-modal
+                [title]="'ยืนยันการลบหมวดหมู่'"
+                [message]="'คุณต้องการลบหมวดหมู่นี้ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้'"
+                (confirmed)="confirmDelete()"
+                (cancelled)="confirmModalOpen.set(false)">
+            </app-confirm-modal>
+        }
     </div>
   `,
     styles: [`
@@ -79,7 +91,9 @@ import { Category } from '../../core/models/category.interface';
   `]
 })
 export class CategoriesComponent {
-    dataService = inject(DataService);
+    dataService = inject(MockDataService);
+
+    toastService = inject(ToastService);
     fb = inject(FormBuilder);
 
     categoryForm = this.fb.group({
@@ -90,6 +104,10 @@ export class CategoriesComponent {
 
     editMode = signal(false);
     editingId = signal<string | null>(null);
+
+    // Confirm Modal
+    confirmModalOpen = signal(false);
+    deleteId = signal<string | null>(null);
 
     startEdit(cat: Category) {
         this.editMode.set(true);
@@ -116,33 +134,63 @@ export class CategoriesComponent {
                     await this.dataService.updateCategory(this.editingId()!, {
                         name: val.name!,
                         type: val.type as 'INCOME' | 'EXPENSE',
-                        icon: val.icon || '📝',
+                        icon: val.icon || 'category',
                         color: '#3b82f6'
                     });
                     this.cancelEdit();
+                    this.toastService.show({
+                        type: 'success',
+                        title: 'สำเร็จ',
+                        message: 'แก้ไขหมวดหมู่เรียบร้อยแล้ว'
+                    });
                 } else {
                     await this.dataService.addCategory({
                         name: val.name!,
                         type: val.type as 'INCOME' | 'EXPENSE',
-                        icon: val.icon || '📝',
+                        icon: val.icon || 'category',
                         color: '#3b82f6'
                     });
                     this.categoryForm.reset({ type: 'EXPENSE' });
+                    this.toastService.show({
+                        type: 'success',
+                        title: 'สำเร็จ',
+                        message: 'เพิ่มหมวดหมู่เรียบร้อยแล้ว'
+                    });
                 }
             } catch (error) {
                 console.error('Failed to save category:', error);
-                alert('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
+                this.toastService.show({
+                    type: 'error',
+                    title: 'ผิดพลาด',
+                    message: 'เกิดข้อผิดพลาดในการบันทึกข้อมูล'
+                });
             }
         }
     }
 
-    async deleteCategory(id: string) {
-        if (confirm('ยืนยันลบหมวดหมู่นี้? ประวัติการทำรายการเก่าๆ อาจได้รับผลกระทบ')) {
+    deleteCategory(id: string) {
+        this.deleteId.set(id);
+        this.confirmModalOpen.set(true);
+    }
+
+    async confirmDelete() {
+        if (this.deleteId()) {
             try {
-                await this.dataService.deleteCategory(id);
+                await this.dataService.deleteCategory(this.deleteId()!);
+                this.confirmModalOpen.set(false);
+                this.deleteId.set(null);
+                this.toastService.show({
+                    type: 'success',
+                    title: 'สำเร็จ',
+                    message: 'ลบหมวดหมู่เรียบร้อยแล้ว'
+                });
             } catch (error) {
                 console.error('Failed to delete category:', error);
-                alert('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
+                this.toastService.show({
+                    type: 'error',
+                    title: 'ผิดพลาด',
+                    message: 'เกิดข้อผิดพลาดในการลบข้อมูล'
+                });
             }
         }
     }

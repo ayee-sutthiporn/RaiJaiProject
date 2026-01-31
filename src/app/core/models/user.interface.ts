@@ -1,8 +1,12 @@
 export interface User {
     id: string;
-    username: string; // Keycloak preferred_username
+    username: string;
     name: string;
     email: string;
     firstName?: string;
     lastName?: string;
+    role?: 'ADMIN' | 'USER';
+    status?: 'ACTIVE' | 'INACTIVE';
+    createdAt?: string;
+    password?: string;
 }

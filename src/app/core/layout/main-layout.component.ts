@@ -5,6 +5,7 @@ import { ThemeService } from '../services/theme.service';
 import { NotificationDropdownComponent } from '../components/notification-dropdown.component';
 import { NotificationService } from '../services/notification.service';
 import { DataService } from '../services/data.service';
+import { AuthService } from '../auth/auth.service';
 import { computed } from '@angular/core';
 
 
@@ -46,13 +47,17 @@ import { computed } from '@angular/core';
                 <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="group-hover:scale-110 transition-transform"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.1a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
                 <span class="font-medium">ตั้งค่า</span>
             </a>
+            <a routerLink="/users" routerLinkActive="bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400 shadow-sm" class="flex items-center gap-3 px-4 py-3 text-zinc-600 dark:text-zinc-400 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-all group">
+                <span class="material-icons-outlined text-[22px] group-hover:scale-110 transition-transform">group</span>
+                <span class="font-medium">ผู้ใช้งาน</span>
+            </a>
         </nav>
 
         <div class="px-6 py-4">
-            <a href="https://portal.sutthiporn.dev" class="w-full flex items-center gap-3 px-4 py-3 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-all mb-2 group">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="group-hover:-translate-x-1 transition-transform"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
-                <span class="font-medium">กลับไปที่ Portal</span>
-            </a>
+            <button (click)="logout()" class="w-full flex items-center gap-3 px-4 py-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all mb-2 group">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="group-hover:-translate-x-1 transition-transform"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+                <span class="font-medium">ออกจากระบบ</span>
+            </button>
 
              <!-- User Profile (Desktop Sidebar) -->
              <div class="flex items-center gap-3 p-3 bg-zinc-50 dark:bg-zinc-700/30 rounded-xl border border-zinc-100 dark:border-zinc-700">
@@ -129,7 +134,7 @@ import { computed } from '@angular/core';
             </div>
         </div>
       
-        <div class="flex-1 overflow-y-auto p-4 md:p-8 lg:p-10 max-w-7xl mx-auto w-full animate-in fade-in duration-500">
+        <div class="flex-1 overflow-y-auto no-scrollbar p-4 md:p-8 lg:p-10 max-w-7xl mx-auto w-full animate-in fade-in duration-500">
              <router-outlet></router-outlet>
         </div>
       </main>
@@ -197,15 +202,19 @@ import { computed } from '@angular/core';
                         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.1a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
                         <span class="font-medium">ตั้งค่า</span>
                     </a>
+                    <a routerLink="/users" (click)="toggleMobileMenu()" routerLinkActive="bg-emerald-500 text-white shadow-lg shadow-emerald-500/30" class="flex items-center gap-4 px-4 py-3.5 text-zinc-600 dark:text-zinc-400 rounded-2xl transition-all active:scale-95 duration-200 hover:bg-zinc-50 dark:hover:bg-zinc-800">
+                        <span class="material-icons-outlined text-[22px]">group</span>
+                        <span class="font-medium">ผู้ใช้งาน</span>
+                    </a>
                 </nav>
 
                 <!-- Footer -->
                  <div class="p-6">
 
-                    <a href="https://portal.sutthiporn.dev" class="w-full flex items-center justify-center p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-300 font-medium hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors gap-2 mb-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
-                        <span>กลับไปที่ Portal</span>
-                    </a>
+                    <button (click)="logout()" class="w-full flex items-center justify-center p-3 rounded-2xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-medium hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors gap-2 mb-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+                        <span>ออกจากระบบ</span>
+                    </button>
                     <button (click)="themeService.toggle()" class="w-full flex items-center justify-center p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-300 font-medium hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors gap-2">
                         @if (themeService.darkMode()) {
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
@@ -227,6 +236,7 @@ export class MainLayoutComponent {
     themeService = inject(ThemeService);
     notificationService = inject(NotificationService);
     dataService = inject(DataService);
+    authService = inject(AuthService);
 
     userInitials = computed(() => {
         const u = this.dataService.user();
@@ -256,5 +266,9 @@ export class MainLayoutComponent {
 
     toggleNotifications() {
         this.showNotifications.update(v => !v);
+    }
+
+    logout() {
+        this.authService.logout();
     }
 }

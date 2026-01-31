@@ -25,7 +25,7 @@ import { CommonModule, DecimalPipe } from '@angular/common';
           <p class="text-2xl font-bold text-zinc-900 dark:text-white">{{ amount() | number:'1.2-2' }} THB</p>
           @if (trend()) {
             <p class="text-xs mt-1" [class.text-emerald-500]="trend()! > 0" [class.text-red-500]="trend()! < 0">
-              {{ trend()! > 0 ? '+' : ''}}{{ trend() }}% from last month
+              {{ trend()! > 0 ? '+' : ''}}{{ trend() }}% จากเดือนที่แล้ว
             </p>
           }
         </div>

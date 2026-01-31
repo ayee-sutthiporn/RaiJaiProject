@@ -41,7 +41,7 @@ import { NotificationService } from '../services/notification.service';
                     <div class="flex-1">
                         <h4 class="text-sm font-bold text-zinc-900 dark:text-white" [class.text-zinc-500]="notification.read">{{ notification.title }}</h4>
                         <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">{{ notification.message }}</p>
-                        <p class="text-[10px] text-zinc-400 mt-2">{{ notification.timestamp | date:'shortTime' }}</p>
+                        <p class="text-[10px] text-zinc-400 mt-2">{{ notification.timestamp | date:'dd-MM-yyyy HH:mm' }}</p>
                     </div>
                     @if (!notification.read) {
                         <div class="absolute top-4 right-4 w-2 h-2 rounded-full bg-emerald-500"></div>

@@ -1,7 +1,7 @@
 import { Component, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { DataService } from '../../core/services/data.service';
+import { MockDataService } from '../../core/services/mock/mock-data.service';
 
 @Component({
     selector: 'app-settings',
@@ -78,11 +78,11 @@ import { DataService } from '../../core/services/data.service';
   `
 })
 export class SettingsComponent {
-    dataService = inject(DataService);
+    dataService = inject(MockDataService);
     fb = inject(FormBuilder);
 
     userInitials = computed(() => {
-        const u = this.dataService.user();
+        const u = this.dataService.currentUser();
         if (!u) return '';
         if (u.firstName && u.lastName) {
             return (u.firstName.charAt(0) + u.lastName.charAt(0)).toUpperCase();
@@ -98,8 +98,8 @@ export class SettingsComponent {
     });
 
     form = this.fb.group({
-        name: [this.dataService.user()?.name || '', Validators.required],
-        email: [this.dataService.user()?.email || '', [Validators.required, Validators.email]]
+        name: [this.dataService.currentUser()?.name || '', Validators.required],
+        email: [this.dataService.currentUser()?.email || '', [Validators.required, Validators.email]]
     });
 
     onSubmit() {

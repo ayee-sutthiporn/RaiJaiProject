@@ -1,110 +1,202 @@
 import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
 import { TransactionFormComponent } from './components/transaction-form/transaction-form.component';
-import { DataService } from '../../core/services/data.service';
+import { MockDataService } from '../../core/services/mock/mock-data.service';
+import { ImageModalComponent } from '../../shared/components/image-modal/image-modal.component';
+import { ConfirmModalComponent } from '../../shared/components/confirm-modal/confirm-modal.component';
+import { ToastService } from '../../core/services/toast.service';
 
 @Component({
     selector: 'app-transactions-page',
     standalone: true,
-    imports: [CommonModule, TransactionFormComponent, DatePipe, DecimalPipe],
+    imports: [CommonModule, TransactionFormComponent, DatePipe, DecimalPipe, ImageModalComponent, ConfirmModalComponent],
+    providers: [DatePipe],
     template: `
-    <div class="space-y-6 animate-in fade-in zoom-in-95 duration-300">
+    <div class="space-y-6 animate-in fade-in zoom-in-95 duration-300 pb-20">
       <header>
         <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">ทำรายการ</h1>
          <p class="text-zinc-500 dark:text-zinc-400">จัดการรายรับรายจ่ายของคุณ</p>
       </header>
+
+      <!-- Summary Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white p-5 rounded-2xl shadow-lg shadow-emerald-200 dark:shadow-none flex items-center justify-between overflow-hidden">
+               <div>
+                   <p class="text-emerald-100 text-sm font-medium mb-1">รายรับ</p>
+                   <h3 class="text-2xl font-bold">+{{ summaryStats().income | number:'1.2-2' }}</h3>
+               </div>
+               <div class="flex items-center justify-center p-3 bg-white/20 rounded-full backdrop-blur-sm">
+                    <span class="material-icons-outlined text-4xl text-white">trending_up</span>
+               </div>
+          </div>
+          <div class="bg-gradient-to-br from-rose-500 to-rose-600 text-white p-5 rounded-2xl shadow-lg shadow-rose-200 dark:shadow-none flex items-center justify-between overflow-hidden">
+               <div>
+                   <p class="text-rose-100 text-sm font-medium mb-1">รายจ่าย</p>
+                   <h3 class="text-2xl font-bold">-{{ summaryStats().expense | number:'1.2-2' }}</h3>
+               </div>
+               <div class="flex items-center justify-center p-3 bg-white/20 rounded-full backdrop-blur-sm">
+                    <span class="material-icons-outlined text-4xl text-white">trending_down</span>
+               </div>
+          </div>
+          <div class="bg-gradient-to-br from-zinc-800 to-zinc-900 text-white p-5 rounded-2xl shadow-lg shadow-zinc-200 dark:shadow-none flex items-center justify-between overflow-hidden">
+               <div>
+                   <p class="text-zinc-400 text-sm font-medium mb-1">คงเหลือสุทธิ</p>
+                   <h3 class="text-2xl font-bold">{{ summaryStats().balance | number:'1.2-2' }}</h3>
+               </div>
+               <div class="flex items-center justify-center p-3 bg-white/10 rounded-full backdrop-blur-sm">
+                    <span class="material-icons-outlined text-4xl text-white">account_balance_wallet</span>
+               </div>
+          </div>
+      </div>
       
-      <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-          <!-- Filters -->
-          <div class="flex items-center gap-3 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
-               <button (click)="setFilterType('ALL')" [class]="'px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ' + (filterType() === 'ALL' ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border border-transparent' : 'bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600')">
+      <!-- Actions & Filters -->
+      <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-white dark:bg-zinc-800 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-sm">
+          <!-- Type Tabs -->
+          <div class="flex p-1 bg-zinc-100 dark:bg-zinc-700/50 rounded-xl">
+               <button (click)="setFilterType('ALL')" [class]="'px-6 py-2 rounded-lg text-sm font-medium transition-all ' + (filterType() === 'ALL' ? 'bg-white dark:bg-zinc-600 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200')">
                    ทั้งหมด
                </button>
-               <button (click)="setFilterType('INCOME')" [class]="'px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ' + (filterType() === 'INCOME' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800' : 'bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600')">
+               <button (click)="setFilterType('INCOME')" [class]="'px-6 py-2 rounded-lg text-sm font-medium transition-all ' + (filterType() === 'INCOME' ? 'bg-white dark:bg-zinc-600 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200')">
                    รายรับ
                </button>
-               <button (click)="setFilterType('EXPENSE')" [class]="'px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ' + (filterType() === 'EXPENSE' ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800' : 'bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600')">
+               <button (click)="setFilterType('EXPENSE')" [class]="'px-6 py-2 rounded-lg text-sm font-medium transition-all ' + (filterType() === 'EXPENSE' ? 'bg-white dark:bg-zinc-600 text-rose-600 dark:text-rose-400 shadow-sm' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200')">
                    รายจ่าย
                </button>
           </div>
 
-          <!-- Add Button -->
-          <button (click)="openModal()" class="w-full md:w-auto bg-zinc-900 dark:bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-zinc-200 dark:shadow-none hover:opacity-90 transition-all flex items-center justify-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
-              ทำรายการใหม่
-          </button>
+          <div class="flex flex-wrap items-center gap-3 w-full xl:w-auto">
+                <!-- Date Filter -->
+                <div class="flex items-center gap-2 bg-zinc-50 dark:bg-zinc-700/30 border border-zinc-200 dark:border-zinc-700 rounded-xl p-2 z-10">
+                    <span class="material-icons-outlined text-zinc-400 text-sm ml-1">date_range</span>
+                    <div class="relative">
+                        <input type="date" [value]="startDate() || ''" (change)="setStartDate($event)" class="bg-transparent border-none text-sm text-zinc-600 dark:text-zinc-300 outline-none w-32 cursor-pointer relative z-20">
+                    </div>
+                    <span class="text-zinc-300">-</span>
+                     <div class="relative">
+                        <input type="date" [value]="endDate() || ''" (change)="setEndDate($event)" class="bg-transparent border-none text-sm text-zinc-600 dark:text-zinc-300 outline-none w-32 cursor-pointer relative z-20">
+                     </div>
+                </div>
+
+                <!-- Category Filter -->
+                <div class="relative group">
+                    <select [value]="filterCategoryId() || ''" (change)="setFilterCategory($event)" class="appearance-none pl-4 pr-10 py-2.5 bg-zinc-50 dark:bg-zinc-700/30 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-zinc-500/20 text-zinc-600 dark:text-zinc-200 cursor-pointer min-w-[160px]">
+                        <option value="">ทุกหมวดหมู่</option>
+                        @for (cat of dataService.categories(); track cat.id) {
+                            <option [value]="cat.id">{{ cat.name }}</option>
+                        }
+                    </select>
+                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none material-icons-outlined text-[18px]">expand_more</span>
+                </div>
+
+                <!-- Add Button -->
+                <button (click)="openModal()" class="w-full sm:w-auto ml-auto bg-zinc-900 dark:bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-zinc-200 dark:shadow-none hover:translate-y-[-1px] transition-all flex items-center justify-center gap-2">
+                    <span class="material-icons-outlined text-[18px]">add</span>
+                    รายการใหม่
+                </button>
+          </div>
       </div>
       
-      <div class="grid grid-cols-1 gap-8 items-start">
-         <!-- Removed Inline Form -->
+      <!-- Transactions List -->
+      <div class="space-y-6">
+         @for (group of groupedTransactions(); track group.date) {
+             <div class="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                 <!-- Date Header -->
+                 <div class="flex items-end justify-between px-2">
+                     <h3 class="font-bold text-zinc-500 dark:text-zinc-400 text-sm flex items-center gap-2">
+                         <span class="bg-zinc-200 dark:bg-zinc-700 w-2 h-2 rounded-full inline-block"></span>
+                         {{ group.date | date:'EEEE, dd MMMM yyyy' }}
+                     </h3>
+                     <span [class]="'text-xs font-bold px-2 py-1 rounded-md ' + (group.dailyTotal >= 0 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400')">
+                         {{ group.dailyTotal >= 0 ? '+' : '' }}{{ group.dailyTotal | number:'1.2-2' }}
+                     </span>
+                 </div>
 
-          <div class="bg-white dark:bg-zinc-800 rounded-2xl p-6 border border-zinc-200 dark:border-zinc-700 shadow-sm">
-             <div class="flex justify-between items-center mb-4 gap-2 flex-wrap">
-                 <h3 class="font-bold text-zinc-900 dark:text-white whitespace-nowrap">ประวัติรายการ</h3>
-                 <!-- Filters Group -->
-                 <div class="flex items-center gap-2">
-                     <!-- Date Filter -->
-                     <!-- Date Range Filter -->
-                     <div class="flex items-center gap-1">
-                        <input type="date" [value]="startDate() || ''" (change)="setStartDate($event)" class="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 dark:text-white w-32" placeholder="Start">
-                        <span class="text-zinc-400">-</span>
-                        <input type="date" [value]="endDate() || ''" (change)="setEndDate($event)" class="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 dark:text-white w-32" placeholder="End">
-                     </div>
-                     
-                     <!-- Category Filter Dropdown -->
-                     <select [value]="filterCategoryId() || ''" (change)="setFilterCategory($event)" class="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 dark:text-white max-w-[140px]">
-                         <option value="">ทุกหมวดหมู่</option>
-                         @for (cat of dataService.categories(); track cat.id) {
-                             <option [value]="cat.id">{{ cat.name }}</option>
-                         }
-                     </select>
+                 <!-- List Items -->
+                 <div class="bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-sm overflow-hidden divide-y divide-zinc-100 dark:divide-zinc-700/50">
+                     @for (tx of group.transactions; track tx.id) {
+                        <div class="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-700/30 transition-colors group cursor-pointer relative overflow-hidden">
+                            <!-- Hover Effect Bar -->
+                            <div class="absolute left-0 top-0 bottom-0 w-1 bg-zinc-900 dark:bg-white opacity-0 group-hover:opacity-100 transition-opacity"></div>
+
+                            <div class="flex items-center gap-4">
+                                <div [class]="'w-12 h-12 rounded-2xl flex items-center justify-center text-xl shadow-sm ' + getCategoryColor(tx.type)">
+                                    <span class="material-icons-outlined">{{ tx.category?.icon || 'article' }}</span>
+                                </div>
+                                <div>
+                                    <p class="font-bold text-zinc-900 dark:text-white text-base flex items-center gap-2">
+                                        {{ tx.category?.name || 'ไม่มีหมวดหมู่' }}
+                                        @if (tx.imageUrl) {
+                                            <button (click)="viewImage($event, tx.imageUrl, tx.description || 'รูปภาพ')" class="w-6 h-6 rounded-full bg-zinc-100 dark:bg-zinc-700 flex items-center justify-center text-zinc-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-all" title="ดูรูปภาพ">
+                                                <span class="material-icons-outlined text-[14px]">image</span>
+                                            </button>
+                                        }
+                                    </p>
+                                    <p class="text-xs text-zinc-500 font-medium mt-0.5">{{ tx.wallet?.name }} • {{ tx.description || '-' }}</p>
+                                </div>
+                            </div>
+                            <div class="text-right flex items-center gap-4">
+                                <div>
+                                     <p [class]="'font-bold text-base ' + (tx.type === 'INCOME' ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-900 dark:text-white')">
+                                        {{ tx.type === 'EXPENSE' ? '-' : '+' }}{{ tx.amount | number }}
+                                    </p>
+                                    <p class="text-[10px] text-zinc-400">{{ tx.date | date:'HH:mm' }}</p>
+                                </div>
+                                <button (click)="onDeleteTransaction(tx.id)" class="w-8 h-8 rounded-full flex items-center justify-center text-zinc-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                                    <span class="material-icons-outlined text-[18px]">delete</span>
+                                </button>
+                            </div>
+                        </div>
+                     }
                  </div>
              </div>
-             
-             <div class="space-y-3">
-                 @for (tx of filteredTransactions(); track tx.id) {
-                    <div class="flex items-center justify-between p-3 rounded-xl bg-zinc-50 dark:bg-zinc-700/30 group">
-                        <div class="flex items-center gap-3">
-                            <div [class]="'w-10 h-10 rounded-full flex items-center justify-center text-lg ' + getCategoryColor(tx.type)">
-                                {{ tx.category?.icon || '📝' }}
-                            </div>
-                            <div>
-                                <p class="font-medium text-zinc-900 dark:text-white text-sm">{{ tx.category?.name || 'ไม่มีหมวดหมู่' }}</p>
-                                <p class="text-xs text-zinc-500">{{ tx.date | date:'d/MM/yy HH:mm' }} • {{ tx.description || '-' }}</p>
-                            </div>
-                        </div>
-                        <div class="text-right flex items-center gap-3">
-                            <p [class]="'font-bold text-sm ' + (tx.type === 'INCOME' ? 'text-emerald-600' : 'text-zinc-900 dark:text-zinc-200')">
-                                {{ tx.type === 'EXPENSE' ? '-' : '+' }}{{ tx.amount | number }}
-                            </p>
-                            <button (click)="dataService.deleteTransaction(tx.id)" class="text-zinc-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                            </button>
-                        </div>
-                    </div>
-                } @empty {
-                    <p class="text-center text-zinc-400 py-10">ยังไม่มีรายการ</p>
-                }
-            </div>
-         </div>
+         } @empty {
+             <div class="text-center py-20 bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700 border-dashed">
+                 <div class="w-20 h-20 bg-zinc-50 dark:bg-zinc-700/50 rounded-full flex items-center justify-center mx-auto mb-4 text-zinc-300 dark:text-zinc-600">
+                     <span class="material-icons-outlined text-4xl">receipt_long</span>
+                 </div>
+                 <h3 class="text-lg font-bold text-zinc-900 dark:text-white mb-1">ยังไม่มีรายการ</h3>
+                 <p class="text-zinc-500 text-sm">เริ่มจดบันทึกรายรับรายจ่ายของคุณได้เลย</p>
+             </div>
+         }
       </div>
 
        <!-- Modal -->
        @if (showModal()) {
-           <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-               <div class="relative w-full max-w-md">
-                   <button (click)="closeModal()" class="absolute top-4 right-4 z-10 p-2 bg-zinc-100 dark:bg-zinc-800 rounded-full text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors">
-                       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 18 18"/></svg>
+           <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300 ease-out">
+               <div class="relative w-full max-w-md animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 ease-out">
+                   <button (click)="closeModal()" class="absolute top-5 right-5 z-20 text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors">
+                       <span class="material-icons-outlined text-2xl">close</span>
                    </button>
                    <app-transaction-form (formSubmitted)="closeModal()"></app-transaction-form>
                </div>
            </div>
        }
+
+       <!-- Image Modal -->
+       @if (selectedImage()) {
+            <app-image-modal 
+                [imageUrl]="selectedImage()!" 
+                [title]="selectedImageTitle()" 
+                (closeModal)="closeImage()">
+            </app-image-modal>
+        }
+
+        <!-- Confirm Modal -->
+        @if (confirmModalOpen()) {
+            <app-confirm-modal
+                [title]="'ยืนยันการลบรายการ'"
+                [message]="'คุณต้องการลบรายการนี้ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้'"
+                (confirmed)="confirmDelete()"
+                (cancelled)="confirmModalOpen.set(false)">
+            </app-confirm-modal>
+        }
     </div>
   `
 })
 export class TransactionsPageComponent {
-    dataService = inject(DataService);
+    dataService = inject(MockDataService);
+    datePipe = inject(DatePipe);
+    toastService = inject(ToastService);
 
     showModal = signal(false);
     filterType = signal<'ALL' | 'INCOME' | 'EXPENSE'>('ALL');
@@ -112,8 +204,26 @@ export class TransactionsPageComponent {
     startDate = signal<string | null>(null);
     endDate = signal<string | null>(null);
 
+    selectedImage = signal<string | null>(null);
+    selectedImageTitle = signal<string>('');
+
+    // Confirm Modal Logic
+    confirmModalOpen = signal(false);
+    deleteId = signal<string | null>(null);
+
+    viewImage(event: Event, url: string, title: string) {
+        event.stopPropagation();
+        this.selectedImage.set(url);
+        this.selectedImageTitle.set(title);
+    }
+
+    closeImage() {
+        this.selectedImage.set(null);
+    }
+
     filteredTransactions = computed(() => {
-        let txs = this.dataService.transactions();
+        const userId = this.dataService.currentUser().id;
+        let txs = this.dataService.transactions().filter(t => t.createdById === userId);
 
         // Filter Type
         if (this.filterType() !== 'ALL') {
@@ -142,6 +252,36 @@ export class TransactionsPageComponent {
         return txs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     });
 
+    summaryStats = computed(() => {
+        const txs = this.filteredTransactions();
+        const income = txs.filter(t => t.type === 'INCOME').reduce((acc, t) => acc + t.amount, 0);
+        const expense = txs.filter(t => t.type === 'EXPENSE').reduce((acc, t) => acc + t.amount, 0);
+        return {
+            income,
+            expense,
+            balance: income - expense
+        };
+    });
+
+    groupedTransactions = computed(() => {
+        const txs = this.filteredTransactions();
+        const groups: { date: string, transactions: typeof txs, dailyTotal: number }[] = [];
+
+        txs.forEach(tx => {
+            const dateStr = tx.date.split('T')[0]; // YYYY-MM-DD
+            let group = groups.find(g => g.date === dateStr);
+            if (!group) {
+                group = { date: dateStr, transactions: [], dailyTotal: 0 };
+                groups.push(group);
+            }
+            group.transactions.push(tx);
+            if (tx.type === 'INCOME') group.dailyTotal += tx.amount;
+            else group.dailyTotal -= tx.amount;
+        });
+
+        return groups;
+    });
+
     openModal() { this.showModal.set(true); }
     closeModal() { this.showModal.set(false); }
 
@@ -164,11 +304,47 @@ export class TransactionsPageComponent {
         this.endDate.set(val === '' ? null : val);
     }
 
+    formatDate(dateStr: string | null): string {
+        if (!dateStr) return '';
+        try {
+            return this.datePipe.transform(dateStr, 'dd-MM-yyyy') || '';
+        } catch {
+            return dateStr || '';
+        }
+    }
+
     getCategoryColor(type: string): string {
         switch (type) {
-            case 'INCOME': return 'bg-emerald-100 dark:bg-emerald-900/30';
-            case 'EXPENSE': return 'bg-rose-100 dark:bg-rose-900/30';
-            default: return 'bg-blue-100 dark:bg-blue-900/30';
+            case 'INCOME': return 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400';
+            case 'EXPENSE': return 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400';
+            default: return 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400';
+        }
+    }
+
+    onDeleteTransaction(id: string) {
+        this.deleteId.set(id);
+        this.confirmModalOpen.set(true);
+    }
+
+    async confirmDelete() {
+        if (this.deleteId()) {
+            try {
+                await this.dataService.deleteTransaction(this.deleteId()!);
+                this.toastService.show({
+                    type: 'success',
+                    title: 'สำเร็จ',
+                    message: 'ลบรายการเรียบร้อยแล้ว'
+                });
+                this.confirmModalOpen.set(false);
+                this.deleteId.set(null);
+            } catch (error) {
+                console.error('Failed to delete transaction', error);
+                this.toastService.show({
+                    type: 'error',
+                    title: 'ผิดพลาด',
+                    message: 'เกิดข้อผิดพลาดในการลบรายการ'
+                });
+            }
         }
     }
 }

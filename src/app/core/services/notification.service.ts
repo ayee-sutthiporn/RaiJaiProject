@@ -1,4 +1,5 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, inject } from '@angular/core';
+import { ToastService } from './toast.service';
 
 export interface AppNotification {
     id: string;
@@ -13,6 +14,7 @@ export interface AppNotification {
     providedIn: 'root'
 })
 export class NotificationService {
+    private toastService = inject(ToastService);
     notifications = signal<AppNotification[]>([]);
 
     // Computed: Unread count
@@ -36,6 +38,13 @@ export class NotificationService {
         };
         this.notifications.update(list => [newNotification, ...list]);
         this.updateUnreadCount();
+
+        // Also show as toast
+        this.toastService.show({
+            title: newNotification.title,
+            message: newNotification.message,
+            type: newNotification.type
+        });
     }
 
     markAsRead(id: string) {

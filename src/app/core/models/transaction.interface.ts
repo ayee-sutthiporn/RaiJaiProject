@@ -12,6 +12,7 @@ export interface Transaction {
     categoryId: string;
     category?: Category; // Populated in responses
     description?: string;
+    imageUrl?: string;
     walletId: string;
     wallet?: Wallet; // Populated in responses
     toWalletId?: string; // Required if type is TRANSFER

@@ -1,13 +1,16 @@
 import { Component, inject, signal, output, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, DatePipe } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, FormGroup } from '@angular/forms';
-import { DataService } from '../../../../core/services/data.service';
+import { MockDataService } from '../../../../core/services/mock/mock-data.service';
 import { TransactionType } from '../../../../core/models/transaction.interface';
+import { ToastService } from '../../../../core/services/toast.service';
 
 @Component({
+    // ... (imports remain same)
     selector: 'app-transaction-form',
     standalone: true,
     imports: [CommonModule, ReactiveFormsModule],
+    providers: [DatePipe],
     template: `
     <div class="bg-white dark:bg-zinc-800 p-6 rounded-2xl shadow-lg border border-zinc-200 dark:border-zinc-700 w-full">
       <h2 class="text-xl font-bold mb-6 text-zinc-900 dark:text-white">ทำรายการใหม่</h2>
@@ -39,8 +42,11 @@ import { TransactionType } from '../../../../core/models/transaction.interface';
         <!-- Date -->
         <div>
              <label for="date" class="block text-xs font-medium text-zinc-500 mb-1">วันที่และเวลา</label>
-            <input id="date" type="datetime-local" formControlName="date"
-             class="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none dark:text-white">
+             <div class="relative">
+                 <input id="date" type="datetime-local" formControlName="date"
+                     class="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none dark:text-white cursor-pointer appearance-none relative z-10">
+                 <span class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none z-0 material-icons-outlined text-[18px]">calendar_today</span>
+             </div>
         </div>
 
         <!-- Wallet Selection -->
@@ -73,7 +79,7 @@ import { TransactionType } from '../../../../core/models/transaction.interface';
               <label for="categoryId" class="block text-xs font-medium text-zinc-500 mb-1">หมวดหมู่</label>
               <select id="categoryId" formControlName="categoryId" class="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none dark:text-white">
                 @for (cat of availableCategories(); track cat.id) {
-                    <option [value]="cat.id">{{ cat.name }} {{ cat.icon }}</option>
+                    <option [value]="cat.id">{{ cat.name }}</option>
                 }
               </select>
             </div>
@@ -85,6 +91,29 @@ import { TransactionType } from '../../../../core/models/transaction.interface';
             <input id="description" type="text" formControlName="description" 
             class="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none dark:text-white"
             placeholder="รายการนี้เกียวกับอะไร?">
+        </div>
+
+        <!-- Image Upload -->
+        <div>
+            <span class="block text-xs font-medium text-zinc-500 mb-1">รูปภาพประกอบ (ไม่บังคับ)</span>
+            
+            @if (selectedImage()) {
+                <div class="relative w-full h-48 rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 group">
+                    <img [src]="selectedImage()" alt="Preview" class="w-full h-full object-cover">
+                    <button type="button" (click)="removeImage()" 
+                        class="absolute top-2 right-2 p-1.5 bg-red-500/80 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600">
+                        <span class="material-icons-outlined text-sm">close</span>
+                    </button>
+                </div>
+            } @else {
+                <label for="file-upload" class="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-zinc-300 dark:border-zinc-700 rounded-xl cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+                    <div class="flex flex-col items-center justify-center pt-5 pb-6 text-zinc-400">
+                        <span class="material-icons-outlined text-2xl mb-2">add_a_photo</span>
+                        <p class="text-xs">คลิกเพื่ออัปโหลดรูปภาพ</p>
+                    </div>
+                    <input id="file-upload" type="file" class="hidden" accept="image/*" (change)="onFileSelected($event)">
+                </label>
+            }
         </div>
 
         <!-- Submit -->
@@ -99,12 +128,15 @@ import { TransactionType } from '../../../../core/models/transaction.interface';
   `
 })
 export class TransactionFormComponent {
-    dataService = inject(DataService);
+    dataService = inject(MockDataService);
     fb = inject(FormBuilder);
+    datePipe = inject(DatePipe);
+    toastService = inject(ToastService);
     formSubmitted = output<void>();
 
     types: TransactionType[] = ['INCOME', 'EXPENSE', 'TRANSFER'];
     currentType = signal<TransactionType>('EXPENSE');
+    selectedImage = signal<string | null>(null);
 
     categories = this.dataService.categories;
 
@@ -162,6 +194,31 @@ export class TransactionFormComponent {
         }
     }
 
+    getFormattedDate(): string {
+        const val = this.form.get('date')?.value;
+        if (!val) return '';
+        try {
+            return this.datePipe.transform(val, 'dd-MM-yyyy HH:mm') || '';
+        } catch {
+            return val;
+        }
+    }
+
+    onFileSelected(event: Event) {
+        const file = (event.target as HTMLInputElement).files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = () => {
+                this.selectedImage.set(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    removeImage() {
+        this.selectedImage.set(null);
+    }
+
     async onSubmit() {
         if (this.form.valid) {
             const formVal = this.form.getRawValue();
@@ -174,18 +231,28 @@ export class TransactionFormComponent {
                     walletId: formVal.walletId,
                     toWalletId: formVal.toWalletId,
                     categoryId: formVal.type === 'TRANSFER' ? '' : formVal.categoryId,
-                    description: formVal.description
+                    description: formVal.description,
+                    imageUrl: this.selectedImage() || undefined
                 });
 
                 this.form.patchValue({
                     amount: null,
                     description: ''
                 });
+                this.selectedImage.set(null);
                 this.formSubmitted.emit();
-                alert('บันทึกเรียบร้อย!');
+                this.toastService.show({
+                    type: 'success',
+                    title: 'สำเร็จ',
+                    message: 'บันทึกรายการเรียบร้อยแล้ว'
+                });
             } catch (error) {
                 console.error('Failed to create transaction:', error);
-                alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+                this.toastService.show({
+                    type: 'error',
+                    title: 'ผิดพลาด',
+                    message: 'เกิดข้อผิดพลาดในการบันทึกข้อมูล'
+                });
             }
         }
     }
