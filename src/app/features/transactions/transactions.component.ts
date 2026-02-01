@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, effect } from '@angular/core';
+import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
 import { TransactionFormComponent } from './components/transaction-form/transaction-form.component';
 import { TransactionApiService } from '../../core/services/api/transaction-api.service';
