@@ -285,7 +285,7 @@ export class WalletsComponent implements OnInit {
             color: val.color!
           }).subscribe(() => this.finishSubmit());
         } else {
-          this.walletService.addWallet({
+          this.walletService.createWallet({
             name: val.name!,
             type: val.type!,
             balance: val.balance!,
