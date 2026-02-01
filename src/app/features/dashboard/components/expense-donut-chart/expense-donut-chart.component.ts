@@ -59,13 +59,13 @@ export interface ChartSegment {
 export class ExpenseDonutChartComponent {
     data = input.required<ChartSegment[]>();
 
-    totalValue = computed(() => this.data().reduce((acc, curr) => acc + curr.value, 0));
+    totalValue = computed(() => (this.data() || []).reduce((acc, curr) => acc + curr.value, 0));
 
     segments = computed(() => {
         let cumulativePercent = 0;
         const total = this.totalValue();
 
-        return this.data().map(item => {
+        return (this.data() || []).map(item => {
             const percent = (item.value / total) * 100;
             const dashArray = `${percent} ${100 - percent}`;
             const offset = 100 - cumulativePercent;

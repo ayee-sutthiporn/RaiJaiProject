@@ -236,7 +236,7 @@ export class TransactionsPageComponent {
         this.isLoading.set(true);
         this.transactionService.getTransactions().subscribe({
             next: (data) => {
-                this.transactions.set(data);
+                this.transactions.set(data || []);
                 this.isLoading.set(false);
             },
             error: (err) => {
