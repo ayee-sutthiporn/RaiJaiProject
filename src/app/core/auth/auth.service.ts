@@ -1,6 +1,8 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { Router } from '@angular/router';
-import { tap, Observable, of, delay } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { tap, Observable } from 'rxjs'; // removed 'of', 'delay'
+import { environment } from '../../../environments/environment';
 import { User } from '../models/user.interface';
 
 export interface LoginRequest {
@@ -18,6 +20,8 @@ export interface AuthResponse {
 })
 export class AuthService {
     private router = inject(Router);
+    private http = inject(HttpClient);
+    private apiUrl = environment.apiBaseUrl;
 
     // Private signals
     private _token = signal<string | null>(localStorage.getItem('token'));
@@ -39,22 +43,7 @@ export class AuthService {
 
 
     login(credentials: LoginRequest): Observable<AuthResponse> {
-        // MOCK LOGIN
-        const mockUser: User = {
-            id: '1',
-            username: credentials.username,
-            name: 'Demo User',
-            email: 'demo@raijai.com',
-            firstName: 'Demo',
-            lastName: 'User'
-        };
-        const mockResponse: AuthResponse = {
-            token: 'mock-jwt-token-' + Math.random(),
-            user: mockUser
-        };
-
-        return of(mockResponse).pipe(
-            delay(800), // Simulate network delay
+        return this.http.post<AuthResponse>(`${this.apiUrl}/auth/login`, credentials).pipe(
             tap(response => {
                 this.setSession(response);
             })
