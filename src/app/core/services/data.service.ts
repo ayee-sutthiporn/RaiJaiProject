@@ -4,6 +4,7 @@ import { CategoryApiService } from './api/category-api.service';
 import { WalletApiService } from './api/wallet-api.service';
 import { TransactionApiService } from './api/transaction-api.service';
 import { DebtApiService } from './api/debt-api.service';
+import { BookApiService, Book } from './api/book-api.service';
 import { AuthService } from '../auth/auth.service';
 import { User } from '../models/user.interface';
 import { Transaction } from '../models/transaction.interface';
@@ -20,6 +21,7 @@ export class DataService {
     private walletApi = inject(WalletApiService);
     private transactionApi = inject(TransactionApiService);
     private debtApi = inject(DebtApiService);
+    private bookApi = inject(BookApiService);
     private authService = inject(AuthService);
 
     // Signals for State
@@ -28,6 +30,10 @@ export class DataService {
     transactions = signal<Transaction[]>([]);
     categories = signal<Category[]>([]);
     debts = signal<Debt[]>([]);
+
+    // Book State
+    books = signal<Book[]>([]);
+    currentBook = signal<Book | null>(null);
 
     // Loading states
     loading = signal(false);
@@ -67,13 +73,27 @@ export class DataService {
     async loadAllData() {
         this.loading.set(true);
         try {
-            await Promise.all([
-                this.loadUser(),
-                this.loadCategories(),
-                this.loadWallets(),
-                this.loadTransactions(),
-                this.loadDebts()
+            this.loadUser(),
+                this.loadBooks()
             ]);
+
+            // If no book selected, select first one
+            if (this.books().length > 0 && !this.currentBook()) {
+                this.currentBook.set(this.books()[0]);
+            } else if (this.books().length === 0) {
+                // Create default personal book if none exists?
+                // For now just handle empty
+            }
+
+            // Load data for current book
+            if (this.currentBook()) {
+                await Promise.all([
+                    this.loadCategories(),
+                    this.loadWallets(),
+                    this.loadTransactions(),
+                    this.loadDebts()
+                ]);
+            }
         } catch (error) {
             console.error('Error loading data:', error);
         } finally {
@@ -125,6 +145,48 @@ export class DataService {
             this.debts.set(debts || []);
         } catch (error) {
             console.error('Error loading debts:', error);
+        }
+    }
+
+    // ===== Book Actions =====
+    async loadBooks() {
+        try {
+            const books = await this.bookApi.getBooks().toPromise();
+            this.books.set(books || []);
+        } catch (error) {
+            console.error('Error loading books:', error);
+        }
+    }
+
+    async createBook(name: string, description?: string) {
+        try {
+            const book = await this.bookApi.createBook({ name, description }).toPromise();
+            if (book) {
+                this.books.update(list => [...list, book]);
+                // If this is the first book, select it
+                if (!this.currentBook()) {
+                    this.switchBook(book);
+                }
+            }
+            return book;
+        } catch (error) {
+            console.error('Error creating book:', error);
+            throw error;
+        }
+    }
+
+    async switchBook(book: Book) {
+        this.currentBook.set(book);
+        this.loading.set(true);
+        try {
+            await Promise.all([
+                this.loadCategories(), // In future: pass bookId
+                this.loadWallets(),    // In future: pass bookId
+                this.loadTransactions(), // In future: pass bookId
+                this.loadDebts()       // In future: pass bookId
+            ]);
+        } finally {
+            this.loading.set(false);
         }
     }
 

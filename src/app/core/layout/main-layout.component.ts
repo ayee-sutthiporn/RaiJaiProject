@@ -18,9 +18,38 @@ import { computed } from '@angular/core';
       <!-- Sidebar (Desktop) -->
       <aside class="w-64 bg-white dark:bg-zinc-800 border-r border-zinc-200 dark:border-zinc-700 hidden md:flex flex-col shadow-xl z-20">
         <div class="p-6">
-            <h1 class="text-3xl font-black bg-gradient-to-r from-emerald-500 to-teal-500 bg-clip-text text-transparent tracking-tighter">รายจ่าย</h1>
-            <p class="text-xs text-zinc-400 mt-1 font-light">จัดการการเงินง่ายๆ</p>
-        </div>
+            <div class="flex items-center justify-between mb-2">
+                 <h1 class="text-3xl font-black bg-gradient-to-r from-emerald-500 to-teal-500 bg-clip-text text-transparent tracking-tighter">รายจ่าย</h1>
+                 <button (click)="createBook()" class="p-1 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-400 hover:text-emerald-500 transition-colors" title="สร้างสมุดใหม่">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                 </button>
+            </div>
+            
+            <!-- Book Switcher -->
+            <div class="relative group">
+                <button [class.bg-emerald-50]="false" class="w-full flex items-center justify-between px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm font-medium text-zinc-700 dark:text-zinc-200 hover:border-emerald-500 transition-colors">
+                    <span class="truncate">{{ dataService.currentBook()?.name || 'เลือกสมุดบัญชี' }}</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-zinc-400"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+                
+                <!-- Dropdown -->
+                <div class="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-xl overflow-hidden hidden group-hover:block z-50">
+                    @for (book of dataService.books(); track book.id) {
+                        <button (click)="switchBook(book)" class="w-full text-left px-3 py-2 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 flex items-center justify-between">
+                            <span class="truncate">{{ book.name }}</span>
+                            @if (dataService.currentBook()?.id === book.id) {
+                                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            }
+                        </button>
+                    }
+                     <div class="border-t border-zinc-100 dark:border-zinc-700 p-1">
+                        <button (click)="createBook()" class="w-full text-left px-2 py-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded flex items-center gap-1.5">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                            สร้างสมุดใหม่
+                        </button>
+                    </div>
+                </div>
+            </div>
         
         <nav class="flex-1 px-4 space-y-2 mt-4">
             <a routerLink="/dashboard" routerLinkActive="bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400 shadow-sm" [routerLinkActiveOptions]="{exact: true}" class="flex items-center gap-3 px-4 py-3 text-zinc-600 dark:text-zinc-400 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-all group">
@@ -270,5 +299,16 @@ export class MainLayoutComponent {
 
     logout() {
         this.authService.logout();
+    }
+
+    switchBook(book: any) {
+        this.dataService.switchBook(book);
+    }
+
+    async createBook() {
+        const name = prompt('ตั้งชื่อสมุดบัญชีใหม่ (เช่น ค่าใช้จ่ายบ้าน, ทริปญี่ปุ่น)');
+        if (name) {
+            await this.dataService.createBook(name, '');
+        }
     }
 }
