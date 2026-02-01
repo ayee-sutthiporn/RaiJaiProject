@@ -1,4 +1,4 @@
-import { Component, inject, computed, signal, OnInit } from '@angular/core';
+import { Component, inject, computed } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { SummaryCardComponent } from './components/summary-card/summary-card.component';
 import { RecentTransactionsComponent } from './components/recent-transactions/recent-transactions.component';
@@ -106,6 +106,8 @@ export class DashboardComponent {
 
   categoryPieData = toSignal(this.reportService.getCategoryPie().pipe(catchError(() => of([]))), { initialValue: [] });
 
+  dailyCashFlowData = toSignal(this.reportService.getDailyCashFlow().pipe(catchError(() => of([]))), { initialValue: [] });
+
   recentTransactions = toSignal(this.transactionService.getTransactions().pipe(catchError(() => of([]))), { initialValue: [] as Transaction[] });
 
   debts = toSignal(this.debtService.getDebts().pipe(catchError(() => of([]))), { initialValue: [] as Debt[] });
@@ -118,8 +120,10 @@ export class DashboardComponent {
 
   // Chart Data
   expenseByCategory = computed(() => {
-    // If API returns data in format { name, value, color }, just use it.
-    // Assuming API returns [{ name: 'Food', value: 1000, color: '#...' }]
-    return this.categoryPieData();
+    return this.categoryPieData().map(item => ({
+      name: item.category,
+      value: item.amount,
+      color: item.color
+    }));
   });
 }
