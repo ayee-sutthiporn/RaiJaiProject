@@ -1,15 +1,19 @@
-import { Component, inject, signal, computed } from '@angular/core';
-import { CommonModule, DecimalPipe } from '@angular/common';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { CommonModule, DecimalPipe, DatePipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MockDataService } from '../../core/services/mock/mock-data.service';
+import { WalletApiService } from '../../core/services/api/wallet-api.service';
+import { TransactionApiService } from '../../core/services/api/transaction-api.service';
 import { Wallet, WalletType } from '../../core/models/wallet.interface';
 import { ToastService } from '../../core/services/toast.service';
 import { ConfirmModalComponent } from '../../shared/components/confirm-modal/confirm-modal.component';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { AuthService } from '../../core/auth/auth.service';
+import { Transaction } from '../../core/models/transaction.interface';
 
 @Component({
   selector: 'app-wallets',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, DecimalPipe, ConfirmModalComponent],
+  imports: [CommonModule, ReactiveFormsModule, DecimalPipe, ConfirmModalComponent, DatePipe],
   template: `
     <div class="space-y-6 animate-in fade-in zoom-in-95 duration-300">
       <header class="flex justify-between items-center">
@@ -25,7 +29,7 @@ import { ConfirmModalComponent } from '../../shared/components/confirm-modal/con
       
       <!-- Wallet Grid -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        @for (wallet of filteredWallets(); track wallet.id) {
+        @for (wallet of wallets(); track wallet.id) {
             <div class="bg-white dark:bg-zinc-800 rounded-2xl p-6 border border-zinc-200 dark:border-zinc-700 shadow-sm relative group overflow-hidden">
                  <!-- Background Decoration -->
                  <div [class]="'absolute top-0 right-0 w-32 h-32 blur-3xl opacity-10 rounded-full -mr-10 -mt-10 ' + wallet.color"></div>
@@ -68,7 +72,7 @@ import { ConfirmModalComponent } from '../../shared/components/confirm-modal/con
                  <div class="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-700/50 flex items-center gap-2">
                     <span class="bg-zinc-100 dark:bg-zinc-700/50 text-zinc-600 dark:text-zinc-400 text-[10px] px-2 py-1 rounded-full flex items-center gap-1 font-medium">
                         <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                        {{ getOwnerName(wallet.ownerId) }}
+                        {{ currentUser()?.name || 'Owner' }}
                     </span>
                  </div>
             </div>
@@ -141,7 +145,7 @@ import { ConfirmModalComponent } from '../../shared/components/confirm-modal/con
                                     </svg>
                                 </div>
                                 <div>
-                                    <p class="font-bold text-sm text-zinc-900 dark:text-white">{{ tx.description || tx.category }}</p>
+                                    <p class="font-bold text-sm text-zinc-900 dark:text-white">{{ tx.description || tx.category?.name || 'รายการ' }}</p>
                                     <p class="text-xs text-zinc-500">{{ tx.date | date:'dd-MM-yyyy, HH:mm' }}</p>
                                 </div>
                             </div>
@@ -169,10 +173,18 @@ import { ConfirmModalComponent } from '../../shared/components/confirm-modal/con
   </div>
   `
 })
-export class WalletsComponent {
-  dataService = inject(MockDataService);
-  toastService = inject(ToastService);
-  fb = inject(FormBuilder);
+export class WalletsComponent implements OnInit {
+  private walletService = inject(WalletApiService);
+  private transactionService = inject(TransactionApiService);
+  private authService = inject(AuthService);
+  private toastService = inject(ToastService);
+  private fb = inject(FormBuilder);
+
+  currentUser = this.authService.user;
+  wallets = toSignal(this.walletService.getWallets(), { initialValue: [] as Wallet[] });
+
+  transactions = signal<Transaction[]>([]);
+
   showModal = signal(false);
   editingId = signal<string | null>(null);
 
@@ -183,20 +195,10 @@ export class WalletsComponent {
   confirmModalOpen = signal(false);
   deleteId = signal<string | null>(null);
 
-  filteredWallets = computed(() => {
-    return this.dataService.wallets();
-  });
-
-  getOwnerName(ownerId?: string): string {
-    if (!ownerId) return 'Unknown';
-    const user = this.dataService.users().find(u => u.id === ownerId);
-    return user ? user.name : 'Unknown';
-  }
-
   selectedWalletTransactions = computed(() => {
     const walletId = this.selectedWalletIdForTransactions();
     if (!walletId) return [];
-    return this.dataService.transactions()
+    return this.transactions()
       .filter(t => t.walletId === walletId)
       // Sort by date desc
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -230,6 +232,7 @@ export class WalletsComponent {
   closeModal() {
     this.showModal.set(false);
     this.editingId.set(null);
+    this.reloadWallets(); // Ensure up to date
   }
 
   selectColor(color: string) {
@@ -255,34 +258,41 @@ export class WalletsComponent {
     return 'เลือกสี';
   }
 
+  private reloadWallets() {
+    // Intentionally left blank as we rely on page reload for now
+  }
+
+  ngOnInit() {
+    this.loadTransactions();
+  }
+
+  loadTransactions() {
+    this.transactionService.getTransactions().subscribe(txs => {
+      this.transactions.set(txs);
+    });
+  }
+
   async onSubmit() {
     if (this.form.valid) {
       const val = this.form.getRawValue();
 
       try {
         if (this.editingId()) {
-          await this.dataService.updateWallet(this.editingId()!, {
+          this.walletService.updateWallet(this.editingId()!, {
             name: val.name!,
             type: val.type!,
             balance: val.balance!,
             color: val.color!
-          });
+          }).subscribe(() => this.finishSubmit());
         } else {
-          await this.dataService.addWallet({
+          this.walletService.addWallet({
             name: val.name!,
             type: val.type!,
             balance: val.balance!,
             currency: 'THB',
-            color: val.color!,
-            ownerId: this.dataService.currentUser()?.id
-          });
+            color: val.color!
+          }).subscribe(() => this.finishSubmit());
         }
-        this.closeModal();
-        this.toastService.show({
-          type: 'success',
-          title: 'สำเร็จ',
-          message: 'บันทึกข้อมูลกระเป๋าเงินเรียบร้อยแล้ว'
-        });
       } catch (error) {
         console.error('Failed to save wallet:', error);
         this.toastService.show({
@@ -294,6 +304,16 @@ export class WalletsComponent {
     }
   }
 
+  finishSubmit() {
+    this.closeModal();
+    this.toastService.show({
+      type: 'success',
+      title: 'สำเร็จ',
+      message: 'บันทึกข้อมูลกระเป๋าเงินเรียบร้อยแล้ว'
+    });
+    window.location.reload();
+  }
+
   deleteWallet(id: string) {
     this.deleteId.set(id);
     this.confirmModalOpen.set(true);
@@ -302,13 +322,15 @@ export class WalletsComponent {
   async confirmDelete() {
     if (this.deleteId()) {
       try {
-        await this.dataService.deleteWallet(this.deleteId()!);
-        this.confirmModalOpen.set(false);
-        this.deleteId.set(null);
-        this.toastService.show({
-          type: 'success',
-          title: 'สำเร็จ',
-          message: 'ลบกระเป๋าเงินเรียบร้อยแล้ว'
+        this.walletService.deleteWallet(this.deleteId()!).subscribe(() => {
+          this.confirmModalOpen.set(false);
+          this.deleteId.set(null);
+          this.toastService.show({
+            type: 'success',
+            title: 'สำเร็จ',
+            message: 'ลบกระเป๋าเงินเรียบร้อยแล้ว'
+          });
+          window.location.reload();
         });
       } catch (error) {
         console.error('Failed to delete wallet:', error);
@@ -324,6 +346,8 @@ export class WalletsComponent {
   openTransactionsModal(walletId: string) {
     this.selectedWalletIdForTransactions.set(walletId);
     this.showTransactionsModal.set(true);
+    // Refresh transactions
+    this.loadTransactions();
   }
 
   closeTransactionsModal() {

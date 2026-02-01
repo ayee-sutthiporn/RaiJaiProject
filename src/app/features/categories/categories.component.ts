@@ -1,10 +1,11 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MockDataService } from '../../core/services/mock/mock-data.service';
+import { CategoryApiService } from '../../core/services/api/category-api.service';
 import { Category } from '../../core/models/category.interface';
 import { ToastService } from '../../core/services/toast.service';
 import { ConfirmModalComponent } from '../../shared/components/confirm-modal/confirm-modal.component';
+import { toSignal } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'app-categories',
@@ -47,7 +48,7 @@ import { ConfirmModalComponent } from '../../shared/components/confirm-modal/con
 
            <!-- List -->
            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
-               @for (cat of dataService.categories(); track cat.id) {
+               @for (cat of categories(); track cat.id) {
                    <div class="flex items-center justify-between p-3 rounded-xl border border-zinc-100 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors group">
                        <div class="flex items-center gap-3">
                            <div class="w-10 h-10 flex items-center justify-center bg-zinc-100 dark:bg-zinc-700 rounded-full text-xl shadow-inner text-zinc-600 dark:text-zinc-300">
@@ -91,10 +92,11 @@ import { ConfirmModalComponent } from '../../shared/components/confirm-modal/con
   `]
 })
 export class CategoriesComponent {
-    dataService = inject(MockDataService);
-
+    private categoryService = inject(CategoryApiService);
     toastService = inject(ToastService);
     fb = inject(FormBuilder);
+
+    categories = toSignal(this.categoryService.getCategories(), { initialValue: [] as Category[] });
 
     categoryForm = this.fb.group({
         name: ['', Validators.required],
@@ -131,31 +133,19 @@ export class CategoriesComponent {
 
             try {
                 if (this.editMode() && this.editingId()) {
-                    await this.dataService.updateCategory(this.editingId()!, {
+                    this.categoryService.updateCategory(this.editingId()!, {
                         name: val.name!,
                         type: val.type as 'INCOME' | 'EXPENSE',
                         icon: val.icon || 'category',
                         color: '#3b82f6'
-                    });
-                    this.cancelEdit();
-                    this.toastService.show({
-                        type: 'success',
-                        title: 'สำเร็จ',
-                        message: 'แก้ไขหมวดหมู่เรียบร้อยแล้ว'
-                    });
+                    }).subscribe(() => this.finishSubmit('แก้ไขหมวดหมู่เรียบร้อยแล้ว'));
                 } else {
-                    await this.dataService.addCategory({
+                    this.categoryService.createCategory({
                         name: val.name!,
                         type: val.type as 'INCOME' | 'EXPENSE',
                         icon: val.icon || 'category',
                         color: '#3b82f6'
-                    });
-                    this.categoryForm.reset({ type: 'EXPENSE' });
-                    this.toastService.show({
-                        type: 'success',
-                        title: 'สำเร็จ',
-                        message: 'เพิ่มหมวดหมู่เรียบร้อยแล้ว'
-                    });
+                    }).subscribe(() => this.finishSubmit('เพิ่มหมวดหมู่เรียบร้อยแล้ว'));
                 }
             } catch (error) {
                 console.error('Failed to save category:', error);
@@ -168,6 +158,16 @@ export class CategoriesComponent {
         }
     }
 
+    finishSubmit(message: string) {
+        this.cancelEdit();
+        this.toastService.show({
+            type: 'success',
+            title: 'สำเร็จ',
+            message: message
+        });
+        window.location.reload();
+    }
+
     deleteCategory(id: string) {
         this.deleteId.set(id);
         this.confirmModalOpen.set(true);
@@ -176,13 +176,15 @@ export class CategoriesComponent {
     async confirmDelete() {
         if (this.deleteId()) {
             try {
-                await this.dataService.deleteCategory(this.deleteId()!);
-                this.confirmModalOpen.set(false);
-                this.deleteId.set(null);
-                this.toastService.show({
-                    type: 'success',
-                    title: 'สำเร็จ',
-                    message: 'ลบหมวดหมู่เรียบร้อยแล้ว'
+                this.categoryService.deleteCategory(this.deleteId()!).subscribe(() => {
+                    this.confirmModalOpen.set(false);
+                    this.deleteId.set(null);
+                    this.toastService.show({
+                        type: 'success',
+                        title: 'สำเร็จ',
+                        message: 'ลบหมวดหมู่เรียบร้อยแล้ว'
+                    });
+                    window.location.reload();
                 });
             } catch (error) {
                 console.error('Failed to delete category:', error);

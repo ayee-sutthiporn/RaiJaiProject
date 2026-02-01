@@ -1,4 +1,4 @@
 export const environment = {
     production: false,
-    apiBaseUrl: 'http://localhost:8080/api/v1'
+    apiBaseUrl: 'https://raijai-api.sutthiporn.dev/api/v1'
 };

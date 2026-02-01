@@ -1,8 +1,10 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MockDataService } from '../../core/services/mock/mock-data.service';
+import { UserApiService } from '../../core/services/api/user-api.service';
 import { User } from '../../core/models/user.interface';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ToastService } from '../../core/services/toast.service';
 
 @Component({
     selector: 'app-users',
@@ -23,15 +25,15 @@ import { User } from '../../core/models/user.interface';
 
       <!-- Users Grid -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        @for (user of dataService.users(); track user.id) {
+        @for (user of users(); track user.id) {
             <div class="bg-white dark:bg-zinc-800 rounded-2xl p-6 border border-zinc-200 dark:border-zinc-700 shadow-sm relative group">
                  <div class="flex items-start justify-between mb-4">
                      <div class="flex items-center gap-4">
                          <div class="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-700 flex items-center justify-center text-xl font-bold text-zinc-600 dark:text-zinc-300">
-                             {{ user.name.charAt(0).toUpperCase() }}
+                             {{ (user.name || user.username).charAt(0).toUpperCase() }}
                          </div>
                          <div>
-                             <h3 class="font-bold text-zinc-900 dark:text-white">{{ user.name }}</h3>
+                             <h3 class="font-bold text-zinc-900 dark:text-white">{{ user.name || user.username }}</h3>
                              <p class="text-xs text-zinc-500">{{ user.email }}</p>
                          </div>
                      </div>
@@ -56,6 +58,8 @@ import { User } from '../../core/models/user.interface';
                  </div>
                  <p class="text-[10px] text-zinc-400 mt-2 text-right">Created: {{ user.createdAt | date:'dd-MM-yyyy' }}</p>
             </div>
+        } @empty {
+            <div class="col-span-full text-center py-10 text-zinc-400">ไม่พบข้อมูลผู้ใช้งาน</div>
         }
       </div>
 
@@ -116,8 +120,12 @@ import { User } from '../../core/models/user.interface';
   `
 })
 export class UsersComponent {
-    dataService = inject(MockDataService);
+    userService = inject(UserApiService);
+    toastService = inject(ToastService);
     fb = inject(FormBuilder);
+
+    // NOTE: This endpoint might not exist in backend yet, handled as 404 potentially or should be implemented
+    users = toSignal(this.userService.getUsers(), { initialValue: [] as User[] });
 
     showModal = signal(false);
     editingId = signal<string | null>(null);
@@ -158,36 +166,49 @@ export class UsersComponent {
     async onSubmit() {
         if (this.form.valid) {
             const val = this.form.value;
-
             try {
                 if (this.editingId()) {
-                    await this.dataService.updateUser(this.editingId()!, {
+                    await this.userService.updateUser(this.editingId()!, {
                         name: val.name!,
                         email: val.email!,
                         role: val.role as 'ADMIN' | 'USER',
                         status: val.status as 'ACTIVE' | 'INACTIVE'
-                    });
+                    }).toPromise();
+                    this.finishSubmit('แก้ไขผู้ใช้งานเรียบร้อยแล้ว');
                 } else {
-                    await this.dataService.addUser({
+                    await this.userService.addUser({
                         name: val.name!,
                         email: val.email!,
                         role: val.role as 'ADMIN' | 'USER',
                         status: val.status as 'ACTIVE' | 'INACTIVE',
                         username: val.email!.split('@')[0],
                         password: val.password || '123456'
-                    });
+                    }).toPromise();
+                    this.finishSubmit('เพิ่มผู้ใช้งานเรียบร้อยแล้ว');
                 }
-                this.closeModal();
             } catch (error) {
                 console.error(error);
-                alert('Failed to save user');
+                this.toastService.show({ type: 'error', title: 'ผิดพลาด', message: 'เกิดข้อผิดพลาดในการบันทึกข้อมูล' });
             }
         }
     }
 
+    finishSubmit(msg: string) {
+        this.closeModal();
+        this.toastService.show({ type: 'success', title: 'สำเร็จ', message: msg });
+        window.location.reload();
+    }
+
     async deleteUser(id: string) {
         if (confirm('คุณแน่ใจว่าต้องการลบผู้ใช้งานนี้?')) {
-            await this.dataService.deleteUser(id);
+            try {
+                await this.userService.deleteUser(id).toPromise();
+                this.toastService.show({ type: 'success', title: 'สำเร็จ', message: 'ลบผู้ใช้งานเรียบร้อยแล้ว' });
+                window.location.reload();
+            } catch (error) {
+                console.error(error);
+                this.toastService.show({ type: 'error', title: 'ผิดพลาด', message: 'เกิดข้อผิดพลาดในการลบข้อมูล' });
+            }
         }
     }
 }

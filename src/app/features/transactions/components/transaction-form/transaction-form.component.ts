@@ -1,12 +1,16 @@
 import { Component, inject, signal, output, computed } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, FormGroup } from '@angular/forms';
-import { MockDataService } from '../../../../core/services/mock/mock-data.service';
+import { TransactionApiService } from '../../../../core/services/api/transaction-api.service';
+import { CategoryApiService } from '../../../../core/services/api/category-api.service';
+import { WalletApiService } from '../../../../core/services/api/wallet-api.service';
 import { TransactionType } from '../../../../core/models/transaction.interface';
 import { ToastService } from '../../../../core/services/toast.service';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { Wallet } from '../../../../core/models/wallet.interface';
+import { Category } from '../../../../core/models/category.interface';
 
 @Component({
-    // ... (imports remain same)
     selector: 'app-transaction-form',
     standalone: true,
     imports: [CommonModule, ReactiveFormsModule],
@@ -53,7 +57,8 @@ import { ToastService } from '../../../../core/services/toast.service';
         <div>
             <label for="walletId" class="block text-xs font-medium text-zinc-500 mb-1">บัญชี/กระเป๋า</label>
             <select id="walletId" formControlName="walletId" class="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none appearance-none dark:text-white">
-                @for (wallet of dataService.wallets(); track wallet.id) {
+                <option value="" disabled selected>เลือกกระเป๋าเงิน</option>
+                @for (wallet of wallets(); track wallet.id) {
                     <option [value]="wallet.id">{{ wallet.name }} ({{ wallet.balance | number }} บาท)</option>
                 }
             </select>
@@ -64,7 +69,7 @@ import { ToastService } from '../../../../core/services/toast.service';
             <div class="animate-in fade-in slide-in-from-top-2">
                 <label for="toWalletId" class="block text-xs font-medium text-zinc-500 mb-1">โอนไปยัง</label>
                 <select id="toWalletId" formControlName="toWalletId" class="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none dark:text-white">
-                     @for (wallet of dataService.wallets(); track wallet.id) {
+                     @for (wallet of wallets(); track wallet.id) {
                          @if (wallet.id !== form.get('walletId')?.value) {
                              <option [value]="wallet.id">{{ wallet.name }}</option>
                          }
@@ -78,6 +83,7 @@ import { ToastService } from '../../../../core/services/toast.service';
             <div>
               <label for="categoryId" class="block text-xs font-medium text-zinc-500 mb-1">หมวดหมู่</label>
               <select id="categoryId" formControlName="categoryId" class="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none dark:text-white">
+                <option value="" disabled selected>เลือกหมวดหมู่</option>
                 @for (cat of availableCategories(); track cat.id) {
                     <option [value]="cat.id">{{ cat.name }}</option>
                 }
@@ -118,8 +124,11 @@ import { ToastService } from '../../../../core/services/toast.service';
 
         <!-- Submit -->
         <button type="submit" 
-            [disabled]="form.invalid"
-            class="w-full bg-zinc-900 dark:bg-emerald-600 text-white font-bold py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed mt-4 shadow-lg shadow-zinc-200 dark:shadow-none">
+            [disabled]="form.invalid || isSubmitting()"
+            class="w-full bg-zinc-900 dark:bg-emerald-600 text-white font-bold py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed mt-4 shadow-lg shadow-zinc-200 dark:shadow-none flex items-center justify-center gap-2">
+            @if(isSubmitting()) {
+                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+            }
             บันทึกรายการ
         </button>
 
@@ -128,17 +137,23 @@ import { ToastService } from '../../../../core/services/toast.service';
   `
 })
 export class TransactionFormComponent {
-    dataService = inject(MockDataService);
-    fb = inject(FormBuilder);
-    datePipe = inject(DatePipe);
-    toastService = inject(ToastService);
+    private transactionService = inject(TransactionApiService);
+    private categoryService = inject(CategoryApiService);
+    private walletService = inject(WalletApiService);
+    private fb = inject(FormBuilder);
+    private datePipe = inject(DatePipe);
+    private toastService = inject(ToastService);
+
     formSubmitted = output<void>();
 
     types: TransactionType[] = ['INCOME', 'EXPENSE', 'TRANSFER'];
     currentType = signal<TransactionType>('EXPENSE');
     selectedImage = signal<string | null>(null);
+    isSubmitting = signal(false);
 
-    categories = this.dataService.categories;
+    // Load data from API
+    categories = toSignal(this.categoryService.getCategories(), { initialValue: [] as Category[] });
+    wallets = toSignal(this.walletService.getWallets(), { initialValue: [] as Wallet[] });
 
     availableCategories = computed(() => {
         const type = this.currentType();
@@ -156,10 +171,9 @@ export class TransactionFormComponent {
     });
 
     constructor() {
-        const wallets = this.dataService.wallets();
-        if (wallets.length > 0) {
-            this.form.patchValue({ walletId: wallets[0].id });
-        }
+        // Auto-select first wallet if available
+        // Note: With toSignal, wallets() might be empty initially. 
+        // We could use effect() if we really want to auto-select when data arrives.
     }
 
     setType(type: TransactionType) {
@@ -219,41 +233,49 @@ export class TransactionFormComponent {
         this.selectedImage.set(null);
     }
 
-    async onSubmit() {
+    onSubmit() {
         if (this.form.valid) {
+            this.isSubmitting.set(true);
             const formVal = this.form.getRawValue();
 
-            try {
-                await this.dataService.addTransaction({
-                    amount: formVal.amount,
-                    date: new Date(formVal.date).toISOString(),
-                    type: formVal.type,
-                    walletId: formVal.walletId,
-                    toWalletId: formVal.toWalletId,
-                    categoryId: formVal.type === 'TRANSFER' ? '' : formVal.categoryId,
-                    description: formVal.description,
-                    imageUrl: this.selectedImage() || undefined
-                });
+            const transactionData = {
+                amount: formVal.amount,
+                date: new Date(formVal.date).toISOString(),
+                type: formVal.type,
+                walletId: formVal.walletId,
+                toWalletId: formVal.toWalletId,
+                categoryId: formVal.type === 'TRANSFER' ? undefined : formVal.categoryId,
+                description: formVal.description,
+                imageUrl: this.selectedImage() || undefined
+            };
 
-                this.form.patchValue({
-                    amount: null,
-                    description: ''
-                });
-                this.selectedImage.set(null);
-                this.formSubmitted.emit();
-                this.toastService.show({
-                    type: 'success',
-                    title: 'สำเร็จ',
-                    message: 'บันทึกรายการเรียบร้อยแล้ว'
-                });
-            } catch (error) {
-                console.error('Failed to create transaction:', error);
-                this.toastService.show({
-                    type: 'error',
-                    title: 'ผิดพลาด',
-                    message: 'เกิดข้อผิดพลาดในการบันทึกข้อมูล'
-                });
-            }
+            this.transactionService.createTransaction(transactionData).subscribe({
+                next: () => {
+                    this.form.reset({
+                        amount: null,
+                        date: new Date().toISOString().slice(0, 16),
+                        type: this.currentType(),
+                        description: ''
+                    });
+                    this.selectedImage.set(null);
+                    this.formSubmitted.emit();
+                    this.toastService.show({
+                        type: 'success',
+                        title: 'สำเร็จ',
+                        message: 'บันทึกรายการเรียบร้อยแล้ว'
+                    });
+                    this.isSubmitting.set(false);
+                },
+                error: (error) => {
+                    console.error('Failed to create transaction:', error);
+                    this.toastService.show({
+                        type: 'error',
+                        title: 'ผิดพลาด',
+                        message: 'เกิดข้อผิดพลาดในการบันทึกข้อมูล'
+                    });
+                    this.isSubmitting.set(false);
+                }
+            });
         }
     }
 }

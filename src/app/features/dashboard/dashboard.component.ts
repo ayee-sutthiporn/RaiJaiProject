@@ -1,20 +1,27 @@
-import { Component, inject, computed } from '@angular/core';
+import { Component, inject, computed, signal, OnInit } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
-import { MockDataService } from '../../core/services/mock/mock-data.service';
 import { SummaryCardComponent } from './components/summary-card/summary-card.component';
 import { RecentTransactionsComponent } from './components/recent-transactions/recent-transactions.component';
 import { ExpenseDonutChartComponent } from './components/expense-donut-chart/expense-donut-chart.component';
+import { ReportApiService } from '../../core/services/api/report-api.service';
+import { TransactionApiService } from '../../core/services/api/transaction-api.service';
+import { DebtApiService } from '../../core/services/api/debt-api.service';
+import { AuthService } from '../../core/auth/auth.service';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { catchError, of } from 'rxjs';
+import { Transaction } from '../../core/models/transaction.interface';
+import { Debt } from '../../core/models/debt.interface';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
   imports: [CommonModule, SummaryCardComponent, RecentTransactionsComponent, DecimalPipe, ExpenseDonutChartComponent],
   template: `
-    <div class="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out">
+    <div class="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out pb-20">
       <header class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
           <h1 class="text-2xl font-bold text-zinc-900 dark:text-white tracking-tight">ภาพรวมกระเป๋าเงิน</h1>
-          <p class="text-zinc-500 dark:text-zinc-400">ยินดีต้อนรับกลับ, {{ user().name || 'ผู้ใช้' }}</p>
+          <p class="text-zinc-500 dark:text-zinc-400">ยินดีต้อนรับกลับ, {{ user()?.name || 'ผู้ใช้' }}</p>
         </div>
         <div class="md:text-right bg-white dark:bg-zinc-800/50 p-4 rounded-xl border border-zinc-100 dark:border-zinc-700 shadow-sm w-full md:w-auto">
             <p class="text-xs text-zinc-400">ทรัพย์สินสุทธิ (Net Worth)</p>
@@ -31,15 +38,15 @@ import { ExpenseDonutChartComponent } from './components/expense-donut-chart/exp
         ></app-summary-card>
         <app-summary-card
           title="รายรับเดือนนี้"
-          [amount]="monthlyIncome()"
+          [amount]="summaryStats().totalIncome"
           type="income"
-          [trend]="12"
+          [trend]="0"
         ></app-summary-card>
         <app-summary-card
           title="รายจ่ายเดือนนี้"
-          [amount]="monthlyExpense()"
+          [amount]="summaryStats().totalExpense"
           type="expense"
-          [trend]="-5"
+          [trend]="0"
         ></app-summary-card>
       </div>
 
@@ -73,7 +80,7 @@ import { ExpenseDonutChartComponent } from './components/expense-donut-chart/exp
                             </div>
                              <div class="text-right">
                                  <p class="font-medium text-zinc-900 dark:text-white text-sm">-{{ debt.installmentPlan?.monthlyAmount || debt.totalAmount | number}}</p>
-                                 <p class="text-[10px] text-orange-500 bg-orange-100 dark:bg-orange-900/30 px-2 py-0.5 rounded-full inline-block mt-1">ครบกำหนดใน 5 วัน</p>
+                                 <p class="text-[10px] text-orange-500 bg-orange-100 dark:bg-orange-900/30 px-2 py-0.5 rounded-full inline-block mt-1">ครบกำหนดในเร็วๆ นี้</p>
                              </div>
                          </div>
                     } @empty {
@@ -87,36 +94,32 @@ import { ExpenseDonutChartComponent } from './components/expense-donut-chart/exp
   `
 })
 export class DashboardComponent {
-  private mockService = inject(MockDataService);
+  private reportService = inject(ReportApiService);
+  private transactionService = inject(TransactionApiService);
+  private debtService = inject(DebtApiService);
+  private authService = inject(AuthService);
 
-  user = this.mockService.currentUser;
+  user = this.authService.user;
 
-  // Dashboard Stats
-  dashboardStats = this.mockService.dashboardStats;
-  totalBalance = computed(() => this.dashboardStats().totalBalance);
-  monthlyIncome = computed(() => this.dashboardStats().monthlyIncome);
-  monthlyExpense = computed(() => this.dashboardStats().monthlyExpense);
-  recentTransactions = computed(() => this.dashboardStats().recentTransactions);
+  // Real API Data
+  summaryStats = toSignal(this.reportService.getSummary().pipe(catchError(() => of({ totalIncome: 0, totalExpense: 0, netBalance: 0 }))), { initialValue: { totalIncome: 0, totalExpense: 0, netBalance: 0 } });
 
-  // Debts
-  debts = this.mockService.debts;
+  categoryPieData = toSignal(this.reportService.getCategoryPie().pipe(catchError(() => of([]))), { initialValue: [] });
+
+  recentTransactions = toSignal(this.transactionService.getTransactions().pipe(catchError(() => of([]))), { initialValue: [] as Transaction[] });
+
+  debts = toSignal(this.debtService.getDebts().pipe(catchError(() => of([]))), { initialValue: [] as Debt[] });
+
+
+  totalBalance = computed(() => this.summaryStats().netBalance);
+  monthlyIncome = computed(() => this.summaryStats().totalIncome);
+  monthlyExpense = computed(() => this.summaryStats().totalExpense);
+
 
   // Chart Data
   expenseByCategory = computed(() => {
-    const transactions = this.mockService.transactions().filter(t => t.type === 'EXPENSE');
-    const categoryTotals: Record<string, number> = {};
-
-    transactions.forEach(t => {
-      const catName = t.category?.name || 'Uncategorized';
-      categoryTotals[catName] = (categoryTotals[catName] || 0) + t.amount;
-    });
-
-    return Object.entries(categoryTotals)
-      .map(([name, value]) => ({
-        name,
-        value,
-        color: this.mockService.categories().find(c => c.name === name)?.color || '#9ca3af'
-      }))
-      .sort((a, b) => b.value - a.value);
+    // If API returns data in format { name, value, color }, just use it.
+    // Assuming API returns [{ name: 'Food', value: 1000, color: '#...' }]
+    return this.categoryPieData();
   });
 }

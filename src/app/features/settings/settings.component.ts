@@ -1,7 +1,10 @@
-import { Component, inject, computed } from '@angular/core';
+import { Component, inject, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MockDataService } from '../../core/services/mock/mock-data.service';
+import { AuthService } from '../../core/auth/auth.service';
+import { UserApiService } from '../../core/services/api/user-api.service';
+import { ToastService } from '../../core/services/toast.service';
+import { User } from '../../core/models/user.interface';
 
 @Component({
     selector: 'app-settings',
@@ -25,8 +28,8 @@ import { MockDataService } from '../../core/services/mock/mock-data.service';
                           {{ userInitials() }}
                       </div>
                       <div>
-                          <button class="px-4 py-2 bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 rounded-lg text-sm font-medium hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors">
-                              เปลี่ยนรูปโปรไฟล์
+                          <button class="px-4 py-2 bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 rounded-lg text-sm font-medium hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors" disabled>
+                              เปลี่ยนรูปโปรไฟล์ (เร็วๆนี้)
                           </button>
                           <p class="text-xs text-zinc-400 mt-2">รองรับไฟล์ JPG, PNG, GIF ขนาดไม่เกิน 2MB</p>
                       </div>
@@ -35,17 +38,32 @@ import { MockDataService } from '../../core/services/mock/mock-data.service';
                   <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4">
                       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
-                              <label for="displayName" class="block text-xs font-medium text-zinc-500 mb-1">ชื่อที่แสดง</label>
-                              <input id="displayName" type="text" formControlName="name" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none dark:text-white">
+                              <label for="displayName" class="block text-xs font-medium text-zinc-500 mb-1">ชื่อจริง</label>
+                              <input id="firstName" type="text" formControlName="firstName" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none dark:text-white">
                           </div>
-                          <div>
-                              <label for="displayEmail" class="block text-xs font-medium text-zinc-500 mb-1">อีเมล</label>
-                              <input id="displayEmail" type="email" formControlName="email" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none dark:text-white">
+                           <div>
+                              <label for="lastName" class="block text-xs font-medium text-zinc-500 mb-1">นามสกุล</label>
+                              <input id="lastName" type="text" formControlName="lastName" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none dark:text-white">
                           </div>
                       </div>
                       
+                      <!-- Name alias field if needed, but we use First/Last mostly now, or just Name -->
+                      <div>
+                          <label for="displayName" class="block text-xs font-medium text-zinc-500 mb-1">ชื่อที่แสดง</label>
+                          <input id="displayName" type="text" formControlName="name" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none dark:text-white">
+                      </div>
+
+                      <div>
+                          <label for="displayEmail" class="block text-xs font-medium text-zinc-500 mb-1">อีเมล</label>
+                          <input id="displayEmail" type="email" formControlName="email" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none dark:text-white" readonly>
+                          <p class="text-[10px] text-zinc-400 mt-1">อีเมลไม่สามารถแก้ไขได้</p>
+                      </div>
+                      
                       <div class="flex justify-end pt-4">
-                           <button type="submit" [disabled]="form.invalid || form.pristine" class="px-6 py-2 bg-zinc-900 dark:bg-emerald-600 text-white font-bold rounded-xl hover:opacity-90 disabled:opacity-50 transition-opacity">
+                           <button type="submit" [disabled]="form.invalid || isSubmitting()" class="px-6 py-2 bg-zinc-900 dark:bg-emerald-600 text-white font-bold rounded-xl hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center gap-2">
+                               @if(isSubmitting()) {
+                                   <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                               }
                                บันทึกการเปลี่ยนแปลง
                            </button>
                       </div>
@@ -78,11 +96,15 @@ import { MockDataService } from '../../core/services/mock/mock-data.service';
   `
 })
 export class SettingsComponent {
-    dataService = inject(MockDataService);
+    authService = inject(AuthService);
+    userService = inject(UserApiService);
+    toastService = inject(ToastService);
     fb = inject(FormBuilder);
 
+    isSubmitting = signal(false);
+
     userInitials = computed(() => {
-        const u = this.dataService.currentUser();
+        const u = this.authService.user();
         if (!u) return '';
         if (u.firstName && u.lastName) {
             return (u.firstName.charAt(0) + u.lastName.charAt(0)).toUpperCase();
@@ -98,15 +120,54 @@ export class SettingsComponent {
     });
 
     form = this.fb.group({
-        name: [this.dataService.currentUser()?.name || '', Validators.required],
-        email: [this.dataService.currentUser()?.email || '', [Validators.required, Validators.email]]
+        firstName: [this.authService.user()?.firstName || ''],
+        lastName: [this.authService.user()?.lastName || ''],
+        name: [this.authService.user()?.name || '', Validators.required],
+        email: [{ value: this.authService.user()?.email || '', disabled: true }, [Validators.required, Validators.email]]
     });
 
     onSubmit() {
         if (this.form.valid) {
-            // API update not implemented yet
-            alert('บันทึกข้อมูลเรียบร้อย (Mock)!');
-            this.form.markAsPristine();
+            this.isSubmitting.set(true);
+            const val = this.form.getRawValue();
+
+            // Note: Backend might expect only changed fields or specific map
+            const updateData: Partial<User> = {
+                firstName: val.firstName || undefined,
+                lastName: val.lastName || undefined,
+                name: val.name || undefined
+            };
+
+            this.userService.updateMe(updateData).subscribe({
+                next: (updatedUser) => {
+                    this.toastService.show({
+                        type: 'success',
+                        title: 'สำเร็จ',
+                        message: 'บันทึกข้อมูลส่วนตัวเรียบร้อยแล้ว'
+                    });
+                    this.isSubmitting.set(false);
+                    // Force logout or better yet, update session?
+                    // Ideally we update session. AuthService might need method for that.
+                    // For now, let's just reload to fetch fresh 'me' from AuthInterceptor/Guard if that existed, 
+                    // but AuthService loads from localStorage.
+                    // We must update localStorage.
+                    const currentUser = this.authService.user();
+                    if (currentUser) {
+                        const newUser = { ...currentUser, ...updatedUser };
+                        localStorage.setItem('user', JSON.stringify(newUser));
+                        window.location.reload(); // Simple way to refresh app state
+                    }
+                },
+                error: (err) => {
+                    console.error('Failed to update profile', err);
+                    this.toastService.show({
+                        type: 'error',
+                        title: 'ผิดพลาด',
+                        message: 'ไม่สามารถบันทึกข้อมูลได้'
+                    });
+                    this.isSubmitting.set(false);
+                }
+            });
         }
     }
 }

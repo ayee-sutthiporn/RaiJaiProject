@@ -1,10 +1,14 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
 import { TransactionFormComponent } from './components/transaction-form/transaction-form.component';
-import { MockDataService } from '../../core/services/mock/mock-data.service';
+import { TransactionApiService } from '../../core/services/api/transaction-api.service';
+import { CategoryApiService } from '../../core/services/api/category-api.service';
 import { ImageModalComponent } from '../../shared/components/image-modal/image-modal.component';
 import { ConfirmModalComponent } from '../../shared/components/confirm-modal/confirm-modal.component';
 import { ToastService } from '../../core/services/toast.service';
+import { Transaction } from '../../core/models/transaction.interface';
+import { Category } from '../../core/models/category.interface';
+import { toSignal } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'app-transactions-page',
@@ -81,7 +85,7 @@ import { ToastService } from '../../core/services/toast.service';
                 <div class="relative group">
                     <select [value]="filterCategoryId() || ''" (change)="setFilterCategory($event)" class="appearance-none pl-4 pr-10 py-2.5 bg-zinc-50 dark:bg-zinc-700/30 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-zinc-500/20 text-zinc-600 dark:text-zinc-200 cursor-pointer min-w-[160px]">
                         <option value="">ทุกหมวดหมู่</option>
-                        @for (cat of dataService.categories(); track cat.id) {
+                        @for (cat of categories(); track cat.id) {
                             <option [value]="cat.id">{{ cat.name }}</option>
                         }
                     </select>
@@ -98,65 +102,72 @@ import { ToastService } from '../../core/services/toast.service';
       
       <!-- Transactions List -->
       <div class="space-y-6">
-         @for (group of groupedTransactions(); track group.date) {
-             <div class="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                 <!-- Date Header -->
-                 <div class="flex items-end justify-between px-2">
-                     <h3 class="font-bold text-zinc-500 dark:text-zinc-400 text-sm flex items-center gap-2">
-                         <span class="bg-zinc-200 dark:bg-zinc-700 w-2 h-2 rounded-full inline-block"></span>
-                         {{ group.date | date:'EEEE, dd MMMM yyyy' }}
-                     </h3>
-                     <span [class]="'text-xs font-bold px-2 py-1 rounded-md ' + (group.dailyTotal >= 0 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400')">
-                         {{ group.dailyTotal >= 0 ? '+' : '' }}{{ group.dailyTotal | number:'1.2-2' }}
-                     </span>
-                 </div>
-
-                 <!-- List Items -->
-                 <div class="bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-sm overflow-hidden divide-y divide-zinc-100 dark:divide-zinc-700/50">
-                     @for (tx of group.transactions; track tx.id) {
-                        <div class="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-700/30 transition-colors group cursor-pointer relative overflow-hidden">
-                            <!-- Hover Effect Bar -->
-                            <div class="absolute left-0 top-0 bottom-0 w-1 bg-zinc-900 dark:bg-white opacity-0 group-hover:opacity-100 transition-opacity"></div>
-
-                            <div class="flex items-center gap-4">
-                                <div [class]="'w-12 h-12 rounded-2xl flex items-center justify-center text-xl shadow-sm ' + getCategoryColor(tx.type)">
-                                    <span class="material-icons-outlined">{{ tx.category?.icon || 'article' }}</span>
+         @if(isLoading()) {
+            <div class="text-center py-20">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto"></div>
+                <p class="mt-4 text-zinc-500">กำลังโหลดข้อมูล...</p>
+            </div>
+         } @else {
+             @for (group of groupedTransactions(); track group.date) {
+                 <div class="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                     <!-- Date Header -->
+                     <div class="flex items-end justify-between px-2">
+                         <h3 class="font-bold text-zinc-500 dark:text-zinc-400 text-sm flex items-center gap-2">
+                             <span class="bg-zinc-200 dark:bg-zinc-700 w-2 h-2 rounded-full inline-block"></span>
+                             {{ group.date | date:'EEEE, dd MMMM yyyy' }}
+                         </h3>
+                         <span [class]="'text-xs font-bold px-2 py-1 rounded-md ' + (group.dailyTotal >= 0 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400')">
+                             {{ group.dailyTotal >= 0 ? '+' : '' }}{{ group.dailyTotal | number:'1.2-2' }}
+                         </span>
+                     </div>
+    
+                     <!-- List Items -->
+                     <div class="bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-sm overflow-hidden divide-y divide-zinc-100 dark:divide-zinc-700/50">
+                         @for (tx of group.transactions; track tx.id) {
+                            <div class="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-700/30 transition-colors group cursor-pointer relative overflow-hidden">
+                                <!-- Hover Effect Bar -->
+                                <div class="absolute left-0 top-0 bottom-0 w-1 bg-zinc-900 dark:bg-white opacity-0 group-hover:opacity-100 transition-opacity"></div>
+    
+                                <div class="flex items-center gap-4">
+                                    <div [class]="'w-12 h-12 rounded-2xl flex items-center justify-center text-xl shadow-sm ' + getCategoryColor(tx.type)">
+                                        <span class="material-icons-outlined">{{ tx.category?.icon || 'article' }}</span>
+                                    </div>
+                                    <div>
+                                        <p class="font-bold text-zinc-900 dark:text-white text-base flex items-center gap-2">
+                                            {{ tx.category?.name || 'ไม่มีหมวดหมู่' }}
+                                            @if (tx.imageUrl) {
+                                                <button (click)="viewImage($event, tx.imageUrl, tx.description || 'รูปภาพ')" class="w-6 h-6 rounded-full bg-zinc-100 dark:bg-zinc-700 flex items-center justify-center text-zinc-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-all" title="ดูรูปภาพ">
+                                                    <span class="material-icons-outlined text-[14px]">image</span>
+                                                </button>
+                                            }
+                                        </p>
+                                        <p class="text-xs text-zinc-500 font-medium mt-0.5">{{ tx.wallet?.name }} • {{ tx.description || '-' }}</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p class="font-bold text-zinc-900 dark:text-white text-base flex items-center gap-2">
-                                        {{ tx.category?.name || 'ไม่มีหมวดหมู่' }}
-                                        @if (tx.imageUrl) {
-                                            <button (click)="viewImage($event, tx.imageUrl, tx.description || 'รูปภาพ')" class="w-6 h-6 rounded-full bg-zinc-100 dark:bg-zinc-700 flex items-center justify-center text-zinc-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-all" title="ดูรูปภาพ">
-                                                <span class="material-icons-outlined text-[14px]">image</span>
-                                            </button>
-                                        }
-                                    </p>
-                                    <p class="text-xs text-zinc-500 font-medium mt-0.5">{{ tx.wallet?.name }} • {{ tx.description || '-' }}</p>
+                                <div class="text-right flex items-center gap-4">
+                                    <div>
+                                         <p [class]="'font-bold text-base ' + (tx.type === 'INCOME' ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-900 dark:text-white')">
+                                            {{ tx.type === 'EXPENSE' ? '-' : '+' }}{{ tx.amount | number }}
+                                        </p>
+                                        <p class="text-[10px] text-zinc-400">{{ tx.date | date:'HH:mm' }}</p>
+                                    </div>
+                                    <button (click)="onDeleteTransaction(tx.id)" class="w-8 h-8 rounded-full flex items-center justify-center text-zinc-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                                        <span class="material-icons-outlined text-[18px]">delete</span>
+                                    </button>
                                 </div>
                             </div>
-                            <div class="text-right flex items-center gap-4">
-                                <div>
-                                     <p [class]="'font-bold text-base ' + (tx.type === 'INCOME' ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-900 dark:text-white')">
-                                        {{ tx.type === 'EXPENSE' ? '-' : '+' }}{{ tx.amount | number }}
-                                    </p>
-                                    <p class="text-[10px] text-zinc-400">{{ tx.date | date:'HH:mm' }}</p>
-                                </div>
-                                <button (click)="onDeleteTransaction(tx.id)" class="w-8 h-8 rounded-full flex items-center justify-center text-zinc-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
-                                    <span class="material-icons-outlined text-[18px]">delete</span>
-                                </button>
-                            </div>
-                        </div>
-                     }
+                         }
+                     </div>
                  </div>
-             </div>
-         } @empty {
-             <div class="text-center py-20 bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700 border-dashed">
-                 <div class="w-20 h-20 bg-zinc-50 dark:bg-zinc-700/50 rounded-full flex items-center justify-center mx-auto mb-4 text-zinc-300 dark:text-zinc-600">
-                     <span class="material-icons-outlined text-4xl">receipt_long</span>
+             } @empty {
+                 <div class="text-center py-20 bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700 border-dashed">
+                     <div class="w-20 h-20 bg-zinc-50 dark:bg-zinc-700/50 rounded-full flex items-center justify-center mx-auto mb-4 text-zinc-300 dark:text-zinc-600">
+                         <span class="material-icons-outlined text-4xl">receipt_long</span>
+                     </div>
+                     <h3 class="text-lg font-bold text-zinc-900 dark:text-white mb-1">ยังไม่มีรายการ</h3>
+                     <p class="text-zinc-500 text-sm">เริ่มจดบันทึกรายรับรายจ่ายของคุณได้เลย</p>
                  </div>
-                 <h3 class="text-lg font-bold text-zinc-900 dark:text-white mb-1">ยังไม่มีรายการ</h3>
-                 <p class="text-zinc-500 text-sm">เริ่มจดบันทึกรายรับรายจ่ายของคุณได้เลย</p>
-             </div>
+             }
          }
       </div>
 
@@ -167,7 +178,7 @@ import { ToastService } from '../../core/services/toast.service';
                    <button (click)="closeModal()" class="absolute top-5 right-5 z-20 text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors">
                        <span class="material-icons-outlined text-2xl">close</span>
                    </button>
-                   <app-transaction-form (formSubmitted)="closeModal()"></app-transaction-form>
+                   <app-transaction-form (formSubmitted)="onFormSubmitted()"></app-transaction-form>
                </div>
            </div>
        }
@@ -194,9 +205,15 @@ import { ToastService } from '../../core/services/toast.service';
   `
 })
 export class TransactionsPageComponent {
-    dataService = inject(MockDataService);
+    private transactionService = inject(TransactionApiService);
+    private categoryService = inject(CategoryApiService);
     datePipe = inject(DatePipe);
     toastService = inject(ToastService);
+
+    // Signals for data
+    transactions = signal<Transaction[]>([]);
+    categories = toSignal(this.categoryService.getCategories(), { initialValue: [] as Category[] });
+    isLoading = signal(false);
 
     showModal = signal(false);
     filterType = signal<'ALL' | 'INCOME' | 'EXPENSE'>('ALL');
@@ -211,6 +228,25 @@ export class TransactionsPageComponent {
     confirmModalOpen = signal(false);
     deleteId = signal<string | null>(null);
 
+    constructor() {
+        this.loadTransactions();
+    }
+
+    loadTransactions() {
+        this.isLoading.set(true);
+        this.transactionService.getTransactions().subscribe({
+            next: (data) => {
+                this.transactions.set(data);
+                this.isLoading.set(false);
+            },
+            error: (err) => {
+                console.error('Failed to load transactions', err);
+                this.isLoading.set(false);
+                this.toastService.show({ type: 'error', title: 'ข้อผิดพลาด', message: 'ไม่สามารถโหลดข้อมูลได้' });
+            }
+        });
+    }
+
     viewImage(event: Event, url: string, title: string) {
         event.stopPropagation();
         this.selectedImage.set(url);
@@ -222,8 +258,7 @@ export class TransactionsPageComponent {
     }
 
     filteredTransactions = computed(() => {
-        const userId = this.dataService.currentUser().id;
-        let txs = this.dataService.transactions().filter(t => t.createdById === userId);
+        let txs = this.transactions();
 
         // Filter Type
         if (this.filterType() !== 'ALL') {
@@ -285,6 +320,12 @@ export class TransactionsPageComponent {
     openModal() { this.showModal.set(true); }
     closeModal() { this.showModal.set(false); }
 
+    onFormSubmitted() {
+        this.closeModal();
+        this.loadTransactions(); // Reload data
+        this.toastService.show({ type: 'success', title: 'สำเร็จ', message: 'บันทึกรายการเรียบร้อย' });
+    }
+
     setFilterType(type: 'ALL' | 'INCOME' | 'EXPENSE') {
         this.filterType.set(type);
     }
@@ -304,15 +345,6 @@ export class TransactionsPageComponent {
         this.endDate.set(val === '' ? null : val);
     }
 
-    formatDate(dateStr: string | null): string {
-        if (!dateStr) return '';
-        try {
-            return this.datePipe.transform(dateStr, 'dd-MM-yyyy') || '';
-        } catch {
-            return dateStr || '';
-        }
-    }
-
     getCategoryColor(type: string): string {
         switch (type) {
             case 'INCOME': return 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400';
@@ -328,23 +360,26 @@ export class TransactionsPageComponent {
 
     async confirmDelete() {
         if (this.deleteId()) {
-            try {
-                await this.dataService.deleteTransaction(this.deleteId()!);
-                this.toastService.show({
-                    type: 'success',
-                    title: 'สำเร็จ',
-                    message: 'ลบรายการเรียบร้อยแล้ว'
-                });
-                this.confirmModalOpen.set(false);
-                this.deleteId.set(null);
-            } catch (error) {
-                console.error('Failed to delete transaction', error);
-                this.toastService.show({
-                    type: 'error',
-                    title: 'ผิดพลาด',
-                    message: 'เกิดข้อผิดพลาดในการลบรายการ'
-                });
-            }
+            this.transactionService.deleteTransaction(this.deleteId()!).subscribe({
+                next: () => {
+                    this.toastService.show({
+                        type: 'success',
+                        title: 'สำเร็จ',
+                        message: 'ลบรายการเรียบร้อยแล้ว'
+                    });
+                    this.confirmModalOpen.set(false);
+                    this.deleteId.set(null);
+                    this.loadTransactions();
+                },
+                error: (error) => {
+                    console.error('Failed to delete transaction', error);
+                    this.toastService.show({
+                        type: 'error',
+                        title: 'ผิดพลาด',
+                        message: 'เกิดข้อผิดพลาดในการลบรายการ'
+                    });
+                }
+            });
         }
     }
 }
