@@ -38,7 +38,7 @@ export class BookApiService {
         return this.http.get<BookMember[]>(`${this.baseUrl}/books/${bookId}/members`);
     }
 
-    addMember(bookId: string, email: string, role: string = 'EDITOR'): Observable<any> {
+    addMember(bookId: string, email: string, role = 'EDITOR'): Observable<unknown> {
         return this.http.post(`${this.baseUrl}/books/${bookId}/members`, { email, role });
     }
 }

@@ -6,6 +6,7 @@ import { NotificationDropdownComponent } from '../components/notification-dropdo
 import { NotificationService } from '../services/notification.service';
 import { DataService } from '../services/data.service';
 import { AuthService } from '../auth/auth.service';
+import { Book } from '../services/api/book-api.service';
 import { computed } from '@angular/core';
 
 
@@ -50,6 +51,7 @@ import { computed } from '@angular/core';
                     </div>
                 </div>
             </div>
+        </div>
         
         <nav class="flex-1 px-4 space-y-2 mt-4">
             <a routerLink="/dashboard" routerLinkActive="bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400 shadow-sm" [routerLinkActiveOptions]="{exact: true}" class="flex items-center gap-3 px-4 py-3 text-zinc-600 dark:text-zinc-400 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-all group">
@@ -301,7 +303,7 @@ export class MainLayoutComponent {
         this.authService.logout();
     }
 
-    switchBook(book: any) {
+    switchBook(book: Book) {
         this.dataService.switchBook(book);
     }
 

@@ -73,7 +73,8 @@ export class DataService {
     async loadAllData() {
         this.loading.set(true);
         try {
-            this.loadUser(),
+            await Promise.all([
+                this.loadUser(),
                 this.loadBooks()
             ]);
 
