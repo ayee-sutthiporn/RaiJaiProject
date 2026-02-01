@@ -4,9 +4,9 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 
 export interface ReportSummary {
-    totalIncome: number;
-    totalExpense: number;
-    netBalance: number;
+    income: number;
+    expense: number;
+    balance: number;
 }
 
 @Injectable({ providedIn: 'root' })

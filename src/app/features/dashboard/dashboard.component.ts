@@ -38,13 +38,13 @@ import { Debt } from '../../core/models/debt.interface';
         ></app-summary-card>
         <app-summary-card
           title="รายรับเดือนนี้"
-          [amount]="summaryStats().totalIncome"
+          [amount]="summaryStats().income"
           type="income"
           [trend]="0"
         ></app-summary-card>
         <app-summary-card
           title="รายจ่ายเดือนนี้"
-          [amount]="summaryStats().totalExpense"
+          [amount]="summaryStats().expense"
           type="expense"
           [trend]="0"
         ></app-summary-card>
@@ -102,7 +102,7 @@ export class DashboardComponent {
   user = this.authService.user;
 
   // Real API Data
-  summaryStats = toSignal(this.reportService.getSummary().pipe(catchError(() => of({ totalIncome: 0, totalExpense: 0, netBalance: 0 }))), { initialValue: { totalIncome: 0, totalExpense: 0, netBalance: 0 } });
+  summaryStats = toSignal(this.reportService.getSummary().pipe(catchError(() => of({ income: 0, expense: 0, balance: 0 }))), { initialValue: { income: 0, expense: 0, balance: 0 } });
 
   categoryPieData = toSignal(this.reportService.getCategoryPie().pipe(catchError(() => of([]))), { initialValue: [] });
 
@@ -111,9 +111,9 @@ export class DashboardComponent {
   debts = toSignal(this.debtService.getDebts().pipe(catchError(() => of([]))), { initialValue: [] as Debt[] });
 
 
-  totalBalance = computed(() => this.summaryStats().netBalance);
-  monthlyIncome = computed(() => this.summaryStats().totalIncome);
-  monthlyExpense = computed(() => this.summaryStats().totalExpense);
+  totalBalance = computed(() => this.summaryStats().balance);
+  monthlyIncome = computed(() => this.summaryStats().income);
+  monthlyExpense = computed(() => this.summaryStats().expense);
 
 
   // Chart Data
