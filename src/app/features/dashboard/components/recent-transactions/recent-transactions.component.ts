@@ -49,7 +49,7 @@ import { ImageModalComponent } from '../../../../shared/components/image-modal/i
         <app-image-modal 
             [imageUrl]="selectedImage()!" 
             [title]="selectedImageTitle()" 
-            (close)="closeImage()">
+            (closeModal)="closeImage()">
         </app-image-modal>
       }
     </div>
