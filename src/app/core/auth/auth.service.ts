@@ -15,6 +15,14 @@ export interface AuthResponse {
     user: User;
 }
 
+export interface UserRegistration {
+    username: string;
+    password: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+}
+
 @Injectable({
     providedIn: 'root'
 })
@@ -48,6 +56,10 @@ export class AuthService {
                 this.setSession(response);
             })
         );
+    }
+
+    register(user: UserRegistration): Observable<any> {
+        return this.http.post(`${this.apiUrl}/auth/register`, user);
     }
 
     logout(): void {
