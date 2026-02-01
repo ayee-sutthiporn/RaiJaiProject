@@ -50,7 +50,10 @@ export interface ChartSegment {
                     <div class="w-3 h-3 rounded-full" [style.backgroundColor]="seg.color"></div>
                     <span class="text-xs text-zinc-600 dark:text-zinc-400 truncate max-w-[80px]">{{ seg.name }}</span>
                 </div>
-                <span class="text-xs font-bold text-zinc-900 dark:text-white">{{ seg.value | number }}</span>
+                <div class="text-right">
+                    <span class="block text-xs font-bold text-zinc-900 dark:text-white">{{ seg.percent | number:'1.1-1' }}%</span>
+                    <span class="block text-[10px] text-zinc-400">{{ seg.value | number }}</span>
+                </div>
             </div>
         }
     </div>
@@ -66,13 +69,14 @@ export class ExpenseDonutChartComponent {
         const total = this.totalValue();
 
         return (this.data() || []).map(item => {
-            const percent = (item.value / total) * 100;
+            const percent = total > 0 ? (item.value / total) * 100 : 0;
             const dashArray = `${percent} ${100 - percent}`;
             const offset = 100 - cumulativePercent;
             cumulativePercent += percent;
 
             return {
                 ...item,
+                percent,
                 dashArray,
                 offset
             };
