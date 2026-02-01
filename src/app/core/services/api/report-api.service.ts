@@ -31,19 +31,27 @@ export class ReportApiService {
     private http = inject(HttpClient);
     private baseUrl = environment.apiBaseUrl;
 
-    getSummary(): Observable<ReportSummary> {
-        return this.http.get<ReportSummary>(`${this.baseUrl}/reports/summary`);
+    private getParams(params?: { startDate?: string; endDate?: string; groupBy?: string }) {
+        let httpParams = {};
+        if (params?.startDate) httpParams = { ...httpParams, start_date: params.startDate };
+        if (params?.endDate) httpParams = { ...httpParams, end_date: params.endDate };
+        if (params?.groupBy) httpParams = { ...httpParams, group_by: params.groupBy };
+        return httpParams;
     }
 
-    getCategoryPie(): Observable<CategoryPieData[]> {
-        return this.http.get<CategoryPieData[]>(`${this.baseUrl}/reports/category-pie`);
+    getSummary(params?: { startDate?: string; endDate?: string }): Observable<ReportSummary> {
+        return this.http.get<ReportSummary>(`${this.baseUrl}/reports/summary`, { params: this.getParams(params) });
+    }
+
+    getCategoryPie(params?: { startDate?: string; endDate?: string }): Observable<CategoryPieData[]> {
+        return this.http.get<CategoryPieData[]>(`${this.baseUrl}/reports/category-pie`, { params: this.getParams(params) });
     }
 
     getBalanceHistory(): Observable<BalanceHistory[]> {
         return this.http.get<BalanceHistory[]>(`${this.baseUrl}/reports/balance-history`);
     }
 
-    getDailyCashFlow(): Observable<DailyCashFlow[]> {
-        return this.http.get<DailyCashFlow[]>(`${this.baseUrl}/reports/daily-cashflow`);
+    getDailyCashFlow(params?: { startDate?: string; endDate?: string; groupBy?: 'day' | 'month' | 'year' }): Observable<DailyCashFlow[]> {
+        return this.http.get<DailyCashFlow[]>(`${this.baseUrl}/reports/daily-cashflow`, { params: this.getParams(params) });
     }
 }

@@ -1,15 +1,15 @@
-import { Component, inject, computed } from '@angular/core';
+import { Component, inject, computed, signal } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { SummaryCardComponent } from './components/summary-card/summary-card.component';
 import { RecentTransactionsComponent } from './components/recent-transactions/recent-transactions.component';
 import { ExpenseDonutChartComponent } from './components/expense-donut-chart/expense-donut-chart.component';
 import { CashFlowChartComponent } from './components/cash-flow-chart/cash-flow-chart.component';
-import { ReportApiService } from '../../core/services/api/report-api.service';
+import { ReportApiService, ReportSummary, CategoryPieData, DailyCashFlow } from '../../core/services/api/report-api.service';
 import { TransactionApiService } from '../../core/services/api/transaction-api.service';
 import { DebtApiService } from '../../core/services/api/debt-api.service';
 import { AuthService } from '../../core/auth/auth.service';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { catchError, of } from 'rxjs';
+import { toSignal, toObservable } from '@angular/core/rxjs-interop';
+import { catchError, of, switchMap } from 'rxjs';
 import { Transaction } from '../../core/models/transaction.interface';
 import { Debt } from '../../core/models/debt.interface';
 
@@ -27,6 +27,22 @@ import { Debt } from '../../core/models/debt.interface';
              ภาพรวมกระเป๋าเงิน
            </h1>
            <p class="text-zinc-500 dark:text-zinc-400 mt-1">ยินดีต้อนรับกลับ, {{ user()?.name || 'User' }} 👋</p>
+        </div>
+        
+        <!-- Filter Toggle -->
+        <div class="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl">
+             <button (click)="setFilter('daily')" 
+                [class]="'px-4 py-2 text-sm font-medium rounded-lg transition-all ' + (filterType() === 'daily' ? 'bg-white dark:bg-zinc-700 shadow text-emerald-600 dark:text-emerald-400' : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400')">
+                รายวัน
+             </button>
+             <button (click)="setFilter('monthly')"
+                [class]="'px-4 py-2 text-sm font-medium rounded-lg transition-all ' + (filterType() === 'monthly' ? 'bg-white dark:bg-zinc-700 shadow text-emerald-600 dark:text-emerald-400' : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400')">
+                รายเดือน
+             </button>
+             <button (click)="setFilter('yearly')"
+                [class]="'px-4 py-2 text-sm font-medium rounded-lg transition-all ' + (filterType() === 'yearly' ? 'bg-white dark:bg-zinc-700 shadow text-emerald-600 dark:text-emerald-400' : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400')">
+                รายปี
+             </button>
         </div>
       </header>
 
@@ -94,29 +110,82 @@ export class DashboardComponent {
 
   user = this.authService.user;
 
+  filterType = signal<'daily' | 'monthly' | 'yearly'>('daily'); // daily = this month, monthly = this year, yearly = all time
+
+  private dateParams = computed(() => {
+    const type = this.filterType();
+    const now = new Date();
+    let startDate: string | undefined;
+    let endDate: string | undefined;
+    let groupBy: 'day' | 'month' | 'year' = 'day';
+
+    if (type === 'daily') {
+      // This Month (Group by Day)
+      groupBy = 'day';
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+    } else if (type === 'monthly') {
+      // This Year (Group by Month)
+      groupBy = 'month';
+      startDate = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0];
+      endDate = new Date(now.getFullYear(), 11, 31).toISOString().split('T')[0];
+    } else {
+      // All Time (Group by Year)
+      groupBy = 'year';
+      startDate = undefined;
+      endDate = undefined;
+    }
+    return { startDate, endDate, groupBy };
+  });
+
   // Real API Data
-  summaryStats = toSignal(this.reportService.getSummary().pipe(catchError(() => of({ income: 0, expense: 0, balance: 0 }))), { initialValue: { income: 0, expense: 0, balance: 0 } });
+  private dateParams$ = toObservable(this.dateParams);
 
-  categoryPieData = toSignal(this.reportService.getCategoryPie().pipe(catchError(() => of([]))), { initialValue: [] });
+  // Real API Data
+  summaryStats = toSignal(
+    this.dateParams$.pipe(
+      switchMap(params => this.reportService.getSummary(params)),
+      catchError(() => of({ income: 0, expense: 0, balance: 0 } as ReportSummary))
+    ),
+    { initialValue: { income: 0, expense: 0, balance: 0 } as ReportSummary }
+  );
 
-  dailyCashFlowData = toSignal(this.reportService.getDailyCashFlow().pipe(catchError(() => of([]))), { initialValue: [] });
+  categoryPieData = toSignal(
+    this.dateParams$.pipe(
+      switchMap(params => this.reportService.getCategoryPie(params)),
+      catchError(() => of([] as CategoryPieData[]))
+    ),
+    { initialValue: [] as CategoryPieData[] }
+  );
+
+  dailyCashFlowData = toSignal(
+    this.dateParams$.pipe(
+      switchMap(params => this.reportService.getDailyCashFlow(params)),
+      catchError(() => of([] as DailyCashFlow[]))
+    ),
+    { initialValue: [] as DailyCashFlow[] }
+  );
 
   recentTransactions = toSignal(this.transactionService.getTransactions().pipe(catchError(() => of([]))), { initialValue: [] as Transaction[] });
 
   debts = toSignal(this.debtService.getDebts().pipe(catchError(() => of([]))), { initialValue: [] as Debt[] });
 
 
-  totalBalance = computed(() => this.summaryStats().balance);
-  monthlyIncome = computed(() => this.summaryStats().income);
-  monthlyExpense = computed(() => this.summaryStats().expense);
+  totalBalance = computed(() => this.summaryStats()?.balance || 0); // Handle potential null if switch is weird
+  monthlyIncome = computed(() => this.summaryStats()?.income || 0);
+  monthlyExpense = computed(() => this.summaryStats()?.expense || 0);
 
 
   // Chart Data
   expenseByCategory = computed(() => {
-    return this.categoryPieData().map(item => ({
+    return (this.categoryPieData() || []).map(item => ({
       name: item.category,
       value: item.amount,
       color: item.color
     }));
   });
+
+  setFilter(type: 'daily' | 'monthly' | 'yearly') {
+    this.filterType.set(type);
+  }
 }
