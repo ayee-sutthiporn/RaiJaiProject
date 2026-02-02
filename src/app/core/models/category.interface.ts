@@ -7,4 +7,5 @@ export interface Category {
     color: string;
     icon?: string;
     createdAt: string;
+    bookId?: string;
 }

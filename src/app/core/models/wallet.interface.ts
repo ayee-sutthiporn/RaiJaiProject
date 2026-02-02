@@ -12,4 +12,5 @@ export interface Wallet {
     ownerId: string;
     owner?: User; // Populated in responses
     createdAt: string;
+    bookId?: string;
 }

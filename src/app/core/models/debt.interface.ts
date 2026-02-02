@@ -26,4 +26,5 @@ export interface Debt {
     wallet?: Wallet; // Populated in responses
     createdAt: string;
     ownerId?: string;
+    bookId?: string;
 }

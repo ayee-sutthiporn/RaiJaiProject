@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { Category } from '../../models/category.interface';
@@ -9,8 +9,11 @@ export class CategoryApiService {
     private http = inject(HttpClient);
     private baseUrl = environment.apiBaseUrl;
 
-    getCategories(): Observable<Category[]> {
-        return this.http.get<Category[]>(`${this.baseUrl}/categories`);
+    getCategories(type?: 'INCOME' | 'EXPENSE', bookId?: string): Observable<Category[]> {
+        let params = new HttpParams();
+        if (type) params = params.set('type', type);
+        if (bookId) params = params.set('book_id', bookId);
+        return this.http.get<Category[]>(`${this.baseUrl}/categories`, { params });
     }
 
     createCategory(category: Partial<Category>): Observable<Category> {

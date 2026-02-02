@@ -20,4 +20,5 @@ export interface Transaction {
     createdById: string;
     createdBy?: User; // Populated in responses
     createdAt: string;
+    bookId?: string;
 }

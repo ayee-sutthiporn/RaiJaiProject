@@ -8,6 +8,7 @@ import { ReportApiService, ReportSummary, CategoryPieData, DailyCashFlow } from 
 import { TransactionApiService } from '../../core/services/api/transaction-api.service';
 import { DebtApiService } from '../../core/services/api/debt-api.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { DataService } from '../../core/services/data.service';
 import { toSignal, toObservable } from '@angular/core/rxjs-interop';
 import { catchError, of, switchMap } from 'rxjs';
 import { Transaction } from '../../core/models/transaction.interface';
@@ -107,6 +108,7 @@ export class DashboardComponent {
   private transactionService = inject(TransactionApiService);
   private debtService = inject(DebtApiService);
   private authService = inject(AuthService);
+  private dataService = inject(DataService);
 
   user = this.authService.user;
 
@@ -114,6 +116,7 @@ export class DashboardComponent {
 
   private dateParams = computed(() => {
     const type = this.filterType();
+    const bookId = this.dataService.currentBook()?.id;
     const now = new Date();
     let startDate: string | undefined;
     let endDate: string | undefined;
@@ -135,7 +138,7 @@ export class DashboardComponent {
       startDate = undefined;
       endDate = undefined;
     }
-    return { startDate, endDate, groupBy };
+    return { startDate, endDate, groupBy, bookId };
   });
 
   // Real API Data
@@ -166,9 +169,21 @@ export class DashboardComponent {
     { initialValue: [] as DailyCashFlow[] }
   );
 
-  recentTransactions = toSignal(this.transactionService.getTransactions().pipe(catchError(() => of([]))), { initialValue: [] as Transaction[] });
+  recentTransactions = toSignal(
+    toObservable(this.dataService.currentBook).pipe(
+      switchMap(book => this.transactionService.getTransactions(undefined, book?.id)),
+      catchError(() => of([]))
+    ),
+    { initialValue: [] as Transaction[] }
+  );
 
-  debts = toSignal(this.debtService.getDebts().pipe(catchError(() => of([]))), { initialValue: [] as Debt[] });
+  debts = toSignal(
+    toObservable(this.dataService.currentBook).pipe(
+      switchMap(book => this.debtService.getDebts(undefined, book?.id)),
+      catchError(() => of([]))
+    ),
+    { initialValue: [] as Debt[] }
+  );
 
 
   totalBalance = computed(() => this.summaryStats()?.balance || 0); // Handle potential null if switch is weird

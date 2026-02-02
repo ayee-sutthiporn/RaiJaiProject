@@ -9,11 +9,10 @@ export class WalletApiService {
     private http = inject(HttpClient);
     private baseUrl = environment.apiBaseUrl;
 
-    getWallets(userId?: string): Observable<Wallet[]> {
+    getWallets(userId?: string, bookId?: string): Observable<Wallet[]> {
         let params = new HttpParams();
-        if (userId) {
-            params = params.set('user_id', userId);
-        }
+        if (userId) params = params.set('user_id', userId);
+        if (bookId) params = params.set('book_id', bookId);
         return this.http.get<Wallet[]>(`${this.baseUrl}/wallets`, { params });
     }
 

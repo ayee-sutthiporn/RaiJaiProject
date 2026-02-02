@@ -114,7 +114,8 @@ export class DataService {
 
     async loadCategories() {
         try {
-            const categories = await this.categoryApi.getCategories().toPromise();
+            const bookId = this.currentBook()?.id;
+            const categories = await this.categoryApi.getCategories(undefined, bookId).toPromise();
             this.categories.set(categories || []);
         } catch (error) {
             console.error('Error loading categories:', error);
@@ -124,7 +125,8 @@ export class DataService {
     async loadWallets() {
         try {
             const userId = this.user()?.id;
-            const wallets = await this.walletApi.getWallets(userId).toPromise();
+            const bookId = this.currentBook()?.id;
+            const wallets = await this.walletApi.getWallets(userId, bookId).toPromise();
             this.wallets.set(wallets || []);
         } catch (error) {
             console.error('Error loading wallets:', error);
@@ -133,7 +135,8 @@ export class DataService {
 
     async loadTransactions() {
         try {
-            const transactions = await this.transactionApi.getTransactions().toPromise();
+            const bookId = this.currentBook()?.id;
+            const transactions = await this.transactionApi.getTransactions(undefined, bookId).toPromise();
             this.transactions.set(transactions || []);
         } catch (error) {
             console.error('Error loading transactions:', error);
@@ -142,7 +145,8 @@ export class DataService {
 
     async loadDebts() {
         try {
-            const debts = await this.debtApi.getDebts().toPromise();
+            const bookId = this.currentBook()?.id;
+            const debts = await this.debtApi.getDebts(undefined, bookId).toPromise();
             this.debts.set(debts || []);
         } catch (error) {
             console.error('Error loading debts:', error);
@@ -181,10 +185,10 @@ export class DataService {
         this.loading.set(true);
         try {
             await Promise.all([
-                this.loadCategories(), // In future: pass bookId
-                this.loadWallets(),    // In future: pass bookId
-                this.loadTransactions(), // In future: pass bookId
-                this.loadDebts()       // In future: pass bookId
+                this.loadCategories(),
+                this.loadWallets(),
+                this.loadTransactions(),
+                this.loadDebts()
             ]);
         } finally {
             this.loading.set(false);
@@ -195,6 +199,9 @@ export class DataService {
     async addCategory(category: Partial<Category>) {
         try {
 
+            if (this.currentBook()?.id) {
+                category.bookId = this.currentBook()?.id;
+            }
             const newCategory = await this.categoryApi.createCategory(category).toPromise();
             if (newCategory) {
                 this.categories.update(list => [...list, newCategory]);
@@ -234,6 +241,9 @@ export class DataService {
             if (!wallet.ownerId) {
                 wallet.ownerId = this.user()?.id;
             }
+            if (this.currentBook()?.id) {
+                wallet.bookId = this.currentBook()?.id;
+            }
             const newWallet = await this.walletApi.createWallet(wallet).toPromise();
             if (newWallet) {
                 this.wallets.update(list => [...list, newWallet]);
@@ -272,6 +282,9 @@ export class DataService {
             // Inject CreatedBy ID if missing
             if (!transaction.createdById) {
                 transaction.createdById = this.user()?.id;
+            }
+            if (this.currentBook()?.id) {
+                transaction.bookId = this.currentBook()?.id;
             }
             const newTx = await this.transactionApi.createTransaction(transaction).toPromise();
             if (newTx) {
@@ -315,6 +328,9 @@ export class DataService {
     async addDebt(debt: Partial<Debt>) {
         try {
 
+            if (this.currentBook()?.id) {
+                debt.bookId = this.currentBook()?.id;
+            }
             const newDebt = await this.debtApi.createDebt(debt).toPromise();
             if (newDebt) {
                 this.debts.update(list => [...list, newDebt]);

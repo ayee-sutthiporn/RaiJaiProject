@@ -31,19 +31,20 @@ export class ReportApiService {
     private http = inject(HttpClient);
     private baseUrl = environment.apiBaseUrl;
 
-    private getParams(params?: { startDate?: string; endDate?: string; groupBy?: string }) {
-        let httpParams = {};
-        if (params?.startDate) httpParams = { ...httpParams, start_date: params.startDate };
-        if (params?.endDate) httpParams = { ...httpParams, end_date: params.endDate };
-        if (params?.groupBy) httpParams = { ...httpParams, group_by: params.groupBy };
+    private getParams(params?: { startDate?: string; endDate?: string; groupBy?: string; bookId?: string }) {
+        const httpParams: Record<string, string> = {};
+        if (params?.startDate) httpParams['start_date'] = params.startDate;
+        if (params?.endDate) httpParams['end_date'] = params.endDate;
+        if (params?.groupBy) httpParams['group_by'] = params.groupBy;
+        if (params?.bookId) httpParams['book_id'] = params.bookId;
         return httpParams;
     }
 
-    getSummary(params?: { startDate?: string; endDate?: string }): Observable<ReportSummary> {
+    getSummary(params?: { startDate?: string; endDate?: string; bookId?: string }): Observable<ReportSummary> {
         return this.http.get<ReportSummary>(`${this.baseUrl}/reports/summary`, { params: this.getParams(params) });
     }
 
-    getCategoryPie(params?: { startDate?: string; endDate?: string }): Observable<CategoryPieData[]> {
+    getCategoryPie(params?: { startDate?: string; endDate?: string; bookId?: string }): Observable<CategoryPieData[]> {
         return this.http.get<CategoryPieData[]>(`${this.baseUrl}/reports/category-pie`, { params: this.getParams(params) });
     }
 
@@ -51,7 +52,7 @@ export class ReportApiService {
         return this.http.get<BalanceHistory[]>(`${this.baseUrl}/reports/balance-history`);
     }
 
-    getDailyCashFlow(params?: { startDate?: string; endDate?: string; groupBy?: 'day' | 'month' | 'year' }): Observable<DailyCashFlow[]> {
+    getDailyCashFlow(params?: { startDate?: string; endDate?: string; groupBy?: 'day' | 'month' | 'year'; bookId?: string }): Observable<DailyCashFlow[]> {
         return this.http.get<DailyCashFlow[]>(`${this.baseUrl}/reports/daily-cashflow`, { params: this.getParams(params) });
     }
 }

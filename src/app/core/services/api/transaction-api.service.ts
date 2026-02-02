@@ -9,10 +9,13 @@ export class TransactionApiService {
     private http = inject(HttpClient);
     private baseUrl = environment.apiBaseUrl;
 
-    getTransactions(walletId?: string): Observable<Transaction[]> {
+    getTransactions(walletId?: string, bookId?: string): Observable<Transaction[]> {
         let params = new HttpParams();
         if (walletId) {
             params = params.set('wallet_id', walletId);
+        }
+        if (bookId) {
+            params = params.set('book_id', bookId);
         }
         return this.http.get<Transaction[]>(`${this.baseUrl}/transactions`, { params });
     }
