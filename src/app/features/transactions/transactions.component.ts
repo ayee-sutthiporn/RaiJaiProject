@@ -8,7 +8,7 @@ import { ConfirmModalComponent } from '../../shared/components/confirm-modal/con
 import { ToastService } from '../../core/services/toast.service';
 import { Transaction } from '../../core/models/transaction.interface';
 import { Category } from '../../core/models/category.interface';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { DataService } from '../../core/services/data.service';
 
 @Component({
     selector: 'app-transactions-page',
@@ -116,9 +116,14 @@ import { toSignal } from '@angular/core/rxjs-interop';
                              <span class="bg-zinc-200 dark:bg-zinc-700 w-2 h-2 rounded-full inline-block"></span>
                              {{ group.date | date:'EEEE, dd MMMM yyyy' }}
                          </h3>
-                         <span [class]="'text-xs font-bold px-2 py-1 rounded-md ' + (group.dailyTotal >= 0 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400')">
-                             {{ group.dailyTotal >= 0 ? '+' : '' }}{{ group.dailyTotal | number:'1.2-2' }}
-                         </span>
+                         <div class="flex items-center gap-3">
+                             <span [class]="'text-xs font-bold px-2 py-1 rounded-md ' + (group.dailyTotal >= 0 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400')">
+                                 {{ group.dailyTotal >= 0 ? '+' : '' }}{{ group.dailyTotal | number:'1.2-2' }}
+                             </span>
+                             <span class="text-xs font-medium text-zinc-400 bg-zinc-100 dark:bg-zinc-700/50 px-2 py-1 rounded-md">
+                                 คงเหลือ {{ group.remainingBalance | number:'1.2-2' }}
+                             </span>
+                         </div>
                      </div>
     
                      <!-- List Items -->
@@ -205,15 +210,21 @@ import { toSignal } from '@angular/core/rxjs-interop';
   `
 })
 export class TransactionsPageComponent {
-    private transactionService = inject(TransactionApiService);
-    private categoryService = inject(CategoryApiService);
+    private dataService = inject(DataService);
+    private transactionService = inject(TransactionApiService); // Keep for delete/update if needed, but DataService should handle actions ideally
+    private categoryService = inject(CategoryApiService); // Keep? DataService has categories.
     datePipe = inject(DatePipe);
     toastService = inject(ToastService);
 
-    // Signals for data
-    transactions = signal<Transaction[]>([]);
-    categories = toSignal(this.categoryService.getCategories(), { initialValue: [] as Category[] });
-    isLoading = signal(false);
+    // Signals for data from DataService
+    transactions = this.dataService.transactions;
+    categories = this.dataService.categories;
+    isLoading = this.dataService.loading;
+    summaryStats = computed(() => ({
+        income: this.dataService.monthlyIncome(),
+        expense: this.dataService.monthlyExpense(),
+        balance: this.dataService.totalBalance()
+    }));
 
     showModal = signal(false);
     filterType = signal<'ALL' | 'INCOME' | 'EXPENSE'>('ALL');
@@ -229,22 +240,8 @@ export class TransactionsPageComponent {
     deleteId = signal<string | null>(null);
 
     constructor() {
-        this.loadTransactions();
-    }
-
-    loadTransactions() {
-        this.isLoading.set(true);
-        this.transactionService.getTransactions().subscribe({
-            next: (data) => {
-                this.transactions.set(data || []);
-                this.isLoading.set(false);
-            },
-            error: (err) => {
-                console.error('Failed to load transactions', err);
-                this.isLoading.set(false);
-                this.toastService.show({ type: 'error', title: 'ข้อผิดพลาด', message: 'ไม่สามารถโหลดข้อมูลได้' });
-            }
-        });
+        // Data is loaded by MainLayout or Resolver, but we can ensure refresh
+        this.dataService.loadTransactions();
     }
 
     viewImage(event: Event, url: string, title: string) {
@@ -256,6 +253,40 @@ export class TransactionsPageComponent {
     closeImage() {
         this.selectedImage.set(null);
     }
+
+    // 1. Calculate Daily Balances from ALL transactions (Reverse Calculation)
+    dailyBalances = computed(() => {
+        const allTxs = [...this.transactions()].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        let currentBalance = this.dataService.totalBalance();
+        const balanceMap = new Map<string, number>();
+
+        // Group by Date
+        const groups = new Map<string, Transaction[]>();
+        allTxs.forEach(tx => {
+            const dateStr = tx.date.split('T')[0];
+            if (!groups.has(dateStr)) groups.set(dateStr, []);
+            groups.get(dateStr)!.push(tx);
+        });
+
+        // Iterate dates descending
+        // Keys of map are insertion order? No, simpler to iterate sorted unique dates
+        const uniqueDates = Array.from(new Set(allTxs.map(t => t.date.split('T')[0]))).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+
+        uniqueDates.forEach(date => {
+            // The balance at the END of this day is currentBalance
+            balanceMap.set(date, currentBalance);
+
+            // Calculate change for this day to find Previous Balance (Opening Balance of this day / Closing of yesterday)
+            const dayTxs = groups.get(date) || [];
+            const dayIncome = dayTxs.filter(t => t.type === 'INCOME').reduce((sum, t) => sum + t.amount, 0);
+            const dayExpense = dayTxs.filter(t => t.type === 'EXPENSE').reduce((sum, t) => sum + t.amount, 0);
+
+            // Reverse: subtract income, add expense
+            currentBalance = currentBalance - dayIncome + dayExpense;
+        });
+
+        return balanceMap;
+    });
 
     filteredTransactions = computed(() => {
         let txs = this.transactions();
@@ -287,26 +318,21 @@ export class TransactionsPageComponent {
         return txs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     });
 
-    summaryStats = computed(() => {
-        const txs = this.filteredTransactions();
-        const income = txs.filter(t => t.type === 'INCOME').reduce((acc, t) => acc + t.amount, 0);
-        const expense = txs.filter(t => t.type === 'EXPENSE').reduce((acc, t) => acc + t.amount, 0);
-        return {
-            income,
-            expense,
-            balance: income - expense
-        };
-    });
-
     groupedTransactions = computed(() => {
         const txs = this.filteredTransactions();
-        const groups: { date: string, transactions: typeof txs, dailyTotal: number }[] = [];
+        const balanceMap = this.dailyBalances();
+        const groups: { date: string, transactions: typeof txs, dailyTotal: number, remainingBalance: number }[] = [];
 
         txs.forEach(tx => {
             const dateStr = tx.date.split('T')[0]; // YYYY-MM-DD
             let group = groups.find(g => g.date === dateStr);
             if (!group) {
-                group = { date: dateStr, transactions: [], dailyTotal: 0 };
+                group = {
+                    date: dateStr,
+                    transactions: [],
+                    dailyTotal: 0,
+                    remainingBalance: balanceMap.get(dateStr) || 0
+                };
                 groups.push(group);
             }
             group.transactions.push(tx);
@@ -322,7 +348,7 @@ export class TransactionsPageComponent {
 
     onFormSubmitted() {
         this.closeModal();
-        this.loadTransactions(); // Reload data
+        this.dataService.loadTransactions(); // Reload via DataService
         this.toastService.show({ type: 'success', title: 'สำเร็จ', message: 'บันทึกรายการเรียบร้อย' });
     }
 
@@ -360,8 +386,8 @@ export class TransactionsPageComponent {
 
     async confirmDelete() {
         if (this.deleteId()) {
-            this.transactionService.deleteTransaction(this.deleteId()!).subscribe({
-                next: () => {
+            this.dataService.deleteTransaction(this.deleteId()!)
+                .then(() => {
                     this.toastService.show({
                         type: 'success',
                         title: 'สำเร็จ',
@@ -369,17 +395,15 @@ export class TransactionsPageComponent {
                     });
                     this.confirmModalOpen.set(false);
                     this.deleteId.set(null);
-                    this.loadTransactions();
-                },
-                error: (error) => {
+                })
+                .catch((error) => {
                     console.error('Failed to delete transaction', error);
                     this.toastService.show({
                         type: 'error',
                         title: 'ผิดพลาด',
                         message: 'เกิดข้อผิดพลาดในการลบรายการ'
                     });
-                }
-            });
+                });
         }
     }
 }
