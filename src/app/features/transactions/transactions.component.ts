@@ -7,7 +7,6 @@ import { ImageModalComponent } from '../../shared/components/image-modal/image-m
 import { ConfirmModalComponent } from '../../shared/components/confirm-modal/confirm-modal.component';
 import { ToastService } from '../../core/services/toast.service';
 import { Transaction } from '../../core/models/transaction.interface';
-import { Category } from '../../core/models/category.interface';
 import { DataService } from '../../core/services/data.service';
 
 @Component({

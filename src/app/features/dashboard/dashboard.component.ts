@@ -1,5 +1,5 @@
 import { Component, inject, computed, signal } from '@angular/core';
-import { CommonModule, DecimalPipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { SummaryCardComponent } from './components/summary-card/summary-card.component';
 import { RecentTransactionsComponent } from './components/recent-transactions/recent-transactions.component';
 import { ExpenseDonutChartComponent } from './components/expense-donut-chart/expense-donut-chart.component';
@@ -17,7 +17,7 @@ import { Debt } from '../../core/models/debt.interface';
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, SummaryCardComponent, RecentTransactionsComponent, DecimalPipe, ExpenseDonutChartComponent, CashFlowChartComponent],
+  imports: [CommonModule, SummaryCardComponent, RecentTransactionsComponent, ExpenseDonutChartComponent, CashFlowChartComponent],
   template: `
     <div class="space-y-8 animate-in fade-in duration-500 pb-20">
       
