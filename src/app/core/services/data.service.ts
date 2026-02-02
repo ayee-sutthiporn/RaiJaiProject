@@ -181,8 +181,15 @@ export class DataService {
     }
 
     async switchBook(book: Book) {
-        this.currentBook.set(book);
         this.loading.set(true);
+        // Clear all data immediately to prevent "leaking" previous book data to UI
+        this.transactions.set([]);
+        this.wallets.set([]);
+        this.categories.set([]);
+        this.debts.set([]);
+
+        this.currentBook.set(book);
+
         try {
             await Promise.all([
                 this.loadCategories(),
@@ -192,6 +199,31 @@ export class DataService {
             ]);
         } finally {
             this.loading.set(false);
+        }
+    }
+
+    async deleteBook(id: string) {
+        try {
+            await this.bookApi.deleteBook(id).toPromise();
+            this.books.update(list => list.filter(b => b.id !== id));
+
+            // If deleted book was current, switch to first available or null
+            if (this.currentBook()?.id === id) {
+                const remaining = this.books();
+                if (remaining.length > 0) {
+                    await this.switchBook(remaining[0]);
+                } else {
+                    this.currentBook.set(null);
+                    // Clear data
+                    this.transactions.set([]);
+                    this.wallets.set([]);
+                    this.categories.set([]);
+                    this.debts.set([]);
+                }
+            }
+        } catch (error) {
+            console.error('Error deleting book:', error);
+            throw error;
         }
     }
 

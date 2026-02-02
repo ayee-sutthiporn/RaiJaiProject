@@ -41,4 +41,8 @@ export class BookApiService {
     addMember(bookId: string, email: string, role = 'EDITOR'): Observable<unknown> {
         return this.http.post(`${this.baseUrl}/books/${bookId}/members`, { email, role });
     }
+
+    deleteBook(id: string): Observable<unknown> {
+        return this.http.delete(`${this.baseUrl}/books/${id}`);
+    }
 }

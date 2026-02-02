@@ -37,12 +37,17 @@ import { computed } from '@angular/core';
                 @if (isBookSwitcherOpen()) {
                     <div class="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200">
                         @for (book of dataService.books(); track book.id) {
-                            <button (click)="switchBook(book)" class="w-full text-left px-3 py-2 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 flex items-center justify-between">
-                                <span class="truncate">{{ book.name }}</span>
-                                @if (dataService.currentBook()?.id === book.id) {
-                                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                                }
-                            </button>
+                            <div class="flex items-center group/item hover:bg-zinc-50 dark:hover:bg-zinc-700">
+                                <button (click)="switchBook(book)" class="flex-1 text-left px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 flex items-center justify-between">
+                                    <span class="truncate">{{ book.name }}</span>
+                                    @if (dataService.currentBook()?.id === book.id) {
+                                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                    }
+                                </button>
+                                <button (click)="deleteBook($event, book)" class="px-2 py-2 text-zinc-400 hover:text-red-500 opacity-0 group-hover/item:opacity-100 transition-opacity" title="ลบสมุดบัญชี">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                                </button>
+                            </div>
                         }
                          <div class="border-t border-zinc-100 dark:border-zinc-700 p-1">
                             <button (click)="createBook()" class="w-full text-left px-2 py-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded flex items-center gap-1.5">
@@ -320,6 +325,17 @@ export class MainLayoutComponent {
         const name = prompt('ตั้งชื่อสมุดบัญชีใหม่ (เช่น ค่าใช้จ่ายบ้าน, ทริปญี่ปุ่น)');
         if (name) {
             await this.dataService.createBook(name, '');
+        }
+    }
+
+    async deleteBook(event: Event, book: Book) {
+        event.stopPropagation();
+        if (confirm(`คุณต้องการลบสมุดบัญชี "${book.name}" หรือไม่?\nข้อมูลทั้งหมดในสมุดนี้จะถูกลบและไม่สามารถกู้คืนได้`)) {
+            try {
+                await this.dataService.deleteBook(book.id);
+            } catch {
+                alert('ไม่สามารถลบสมุดบัญชีได้ (คุณอาจไม่ใช่เจ้าของ)');
+            }
         }
     }
 }
