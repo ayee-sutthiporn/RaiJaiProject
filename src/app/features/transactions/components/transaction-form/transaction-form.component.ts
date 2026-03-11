@@ -1,14 +1,9 @@
 import { Component, inject, signal, output, computed } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, FormGroup } from '@angular/forms';
-import { TransactionApiService } from '../../../../core/services/api/transaction-api.service';
-import { CategoryApiService } from '../../../../core/services/api/category-api.service';
-import { WalletApiService } from '../../../../core/services/api/wallet-api.service';
 import { TransactionType } from '../../../../core/models/transaction.interface';
 import { ToastService } from '../../../../core/services/toast.service';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { Wallet } from '../../../../core/models/wallet.interface';
-import { Category } from '../../../../core/models/category.interface';
+import { DataService } from '../../../../core/services/data.service';
 
 @Component({
     selector: 'app-transaction-form',
@@ -137,9 +132,7 @@ import { Category } from '../../../../core/models/category.interface';
   `
 })
 export class TransactionFormComponent {
-    private transactionService = inject(TransactionApiService);
-    private categoryService = inject(CategoryApiService);
-    private walletService = inject(WalletApiService);
+    private dataService = inject(DataService);
     private fb = inject(FormBuilder);
     private datePipe = inject(DatePipe);
     private toastService = inject(ToastService);
@@ -151,9 +144,9 @@ export class TransactionFormComponent {
     selectedImage = signal<string | null>(null);
     isSubmitting = signal(false);
 
-    // Load data from API
-    categories = toSignal(this.categoryService.getCategories(), { initialValue: [] as Category[] });
-    wallets = toSignal(this.walletService.getWallets(), { initialValue: [] as Wallet[] });
+    // Use data from DataService (already loaded, aware of currentBook)
+    categories = this.dataService.categories;
+    wallets = this.dataService.wallets;
 
     availableCategories = computed(() => {
         const type = this.currentType();
@@ -233,7 +226,7 @@ export class TransactionFormComponent {
         this.selectedImage.set(null);
     }
 
-    onSubmit() {
+    async onSubmit() {
         if (this.form.valid) {
             this.isSubmitting.set(true);
             const formVal = this.form.getRawValue();
@@ -249,33 +242,31 @@ export class TransactionFormComponent {
                 imageUrl: this.selectedImage() || undefined
             };
 
-            this.transactionService.createTransaction(transactionData).subscribe({
-                next: () => {
-                    this.form.reset({
-                        amount: null,
-                        date: new Date().toISOString().slice(0, 16),
-                        type: this.currentType(),
-                        description: ''
-                    });
-                    this.selectedImage.set(null);
-                    this.formSubmitted.emit();
-                    this.toastService.show({
-                        type: 'success',
-                        title: 'สำเร็จ',
-                        message: 'บันทึกรายการเรียบร้อยแล้ว'
-                    });
-                    this.isSubmitting.set(false);
-                },
-                error: (error) => {
-                    console.error('Failed to create transaction:', error);
-                    this.toastService.show({
-                        type: 'error',
-                        title: 'ผิดพลาด',
-                        message: 'เกิดข้อผิดพลาดในการบันทึกข้อมูล'
-                    });
-                    this.isSubmitting.set(false);
-                }
-            });
+            try {
+                await this.dataService.addTransaction(transactionData);
+                this.form.reset({
+                    amount: null,
+                    date: new Date().toISOString().slice(0, 16),
+                    type: this.currentType(),
+                    description: ''
+                });
+                this.selectedImage.set(null);
+                this.formSubmitted.emit();
+                this.toastService.show({
+                    type: 'success',
+                    title: 'สำเร็จ',
+                    message: 'บันทึกรายการเรียบร้อยแล้ว'
+                });
+            } catch (error) {
+                console.error('Failed to create transaction:', error);
+                this.toastService.show({
+                    type: 'error',
+                    title: 'ผิดพลาด',
+                    message: 'เกิดข้อผิดพลาดในการบันทึกข้อมูล'
+                });
+            } finally {
+                this.isSubmitting.set(false);
+            }
         }
     }
 }

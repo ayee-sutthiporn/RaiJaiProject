@@ -81,20 +81,15 @@ export class DataService {
             // If no book selected, select first one
             if (this.books().length > 0 && !this.currentBook()) {
                 this.currentBook.set(this.books()[0]);
-            } else if (this.books().length === 0) {
-                // Create default personal book if none exists?
-                // For now just handle empty
             }
 
-            // Load data for current book
-            if (this.currentBook()) {
-                await Promise.all([
-                    this.loadCategories(),
-                    this.loadWallets(),
-                    this.loadTransactions(),
-                    this.loadDebts()
-                ]);
-            }
+            // Always load data (book filter is optional)
+            await Promise.all([
+                this.loadCategories(),
+                this.loadWallets(),
+                this.loadTransactions(),
+                this.loadDebts()
+            ]);
         } catch (error) {
             console.error('Error loading data:', error);
         } finally {
